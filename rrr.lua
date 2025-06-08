@@ -15,7 +15,7 @@
     - Heal target player (by name)
     - A dedicated "External Scripts" section with user-defined button names and URLs for dynamic script execution.
 
-    Key Features & Improvements:
+    Key Features & Improvements:dddddddddddd
     - Custom animated notification system ("by pyst" attribution included).
     - Automatic R6/R15 character rig detection and notification on game start.
     - Highly stylized UI with rounded corners, subtle shadows, and a clean, modern aesthetic.
