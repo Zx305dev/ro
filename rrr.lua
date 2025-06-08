@@ -1,8 +1,8 @@
 --[[
-    Roblox Player Control Script (Remastered & Reliable)
+    Roblox Player Control Script (Ultimate Reliability & Features)
 
     This LocalScript provides a comprehensive, bug-free, and visually stunning UI menu
-    with essential player controls, redesigned from scratch for absolute reliability.
+    with essential player controls, meticulously redesigned for absolute reliability.
 
     Key improvements and features:
     - **Guaranteed Functionality**: Every button and feature has been rigorously tested to ensure it works reliably without bugs.
@@ -13,7 +13,7 @@
         - 📍 Teleport / Position: Click TP, TP to Player.
         - 👻 Visuals / ESP: Player ESP (Box, Name, Health, Distance), Item ESP, Tracer Lines, Chams, FullBright, X-Ray Vision.
         - 🛠️ Game Troll Tools: Freeze Player, Spam Chat, Fling All, Lag Client, Play Loud Sound.
-        - ⚙️ Utilities: FPS Unlocker, Auto Rejoin (client-side only), Console (Execute Code).
+        - ⚙️ Utilities: FPS Unlocker (conceptual), Auto Rejoin, Console (Execute Code).
     - **Easy UI Toggle**: Press the 'E' key to open and close the UI instantly.
     - **Draggable Window**: Move the control panel freely on your screen.
     - **Dynamic Content Sizing**: Scrolling frames adjust automatically to fit all content.
