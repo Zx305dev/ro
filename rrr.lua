@@ -1,7 +1,7 @@
 --[[
     Roblox Player Control Script (Auto-Reset Only)
 
-    This LocalScript provides a simple, reliable UI with a single core feature:
+    This LocalScript provides a simple, reliable UI with a single core feature:h
     automatically resetting your character upon death.
 
     Key Features:
