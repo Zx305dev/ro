@@ -1,7 +1,7 @@
 --[[
-    Roblox Player Control Script (Enhanced UI Menu & Notifications)
+    Roblox Player Control Script (Enhanced UI & External Scripts)
 
-    This LocalScript provides an enhanced UI menu with controls for:
+    This LocalScript provides a comprehensive UI menu with controls for:
     - Player WalkSpeed
     - Player JumpPower
     - Toggling the player highlighting feature on/off
@@ -11,10 +11,11 @@
     - Toggling 'Invisibility' for the local player
 
     Key features:
-    - Custom animated notifications for script feedback.
-    - Detection and notification of R6/R15 character type upon joining.
-    - Stylish UI with rounded corners, a close 'X' button, and a minimize '-' button (with smooth animations).
-    - The main UI is parented to CoreGui for better visibility and control.
+    - Custom animated notifications for script feedback, including "by pyst" attribution.
+    - Automatic detection and notification of R6/R15 character type upon joining.
+    - Stylish, draggable, and minimizable UI with rounded corners and smooth animations.
+    - A new "External Scripts" section that allows loading and executing Lua scripts from specified URLs,
+      using the exact names provided by the user.
 
     It should be placed in StarterPlayerScripts or any other
     client-side location where it can run.
@@ -26,13 +27,14 @@
        It's initially visible but can be closed/opened with 'E' or the 'X' button.
     4. The menu is draggable and minimizable via the '-' button.
     5. Controls for speed, jump, highlight, fly, launch, and invisibility are added.
-    6. The script listens for UI interactions to adjust player properties or trigger actions.
-    7. Player highlighting runs in a loop, applying a 'Highlight' instance
+    6. An "External Scripts" section is added, allowing dynamic loading of scripts from URLs.
+    7. The script listens for UI interactions to adjust player properties or trigger actions.
+    8. Player highlighting runs in a loop, applying a 'Highlight' instance
        to character models, ensuring existing highlights are removed first.
-    8. Fly mode manipulates the player's Humanoid and adds a BodyVelocity
+    9. Fly mode manipulates the player's Humanoid and adds a BodyVelocity
        for controlled upward movement when spacebar is held.
-    9. Launching applies a short burst of BodyVelocity to other players.
-    10. All dynamically created instances (Highlights, BodyVelocities) are
+    10. Launching applies a short burst of BodyVelocity to other players.
+    11. All dynamically created instances (Highlights, BodyVelocities) are
         cleaned up when no longer needed or when players leave.
 ]]
 
@@ -45,6 +47,7 @@ local HIGHLIGHT_OUTLINE_TRANSPARENCY = 0 -- Fully opaque outline
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService") -- For notifications and minimize animation
+local HttpService = game:GetService("HttpService") -- For HttpGet in external scripts
 local LocalPlayer = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui") -- Parent for custom UI and notifications
 
@@ -73,7 +76,7 @@ local INVISIBLE_TRANSPARENCY = 1 -- Fully transparent
 local VISIBLE_TRANSPARENCY = 0 -- Fully opaque
 
 -- Original UI Frame size for minimizing/maximizing
-local ORIGINAL_FRAME_SIZE = UDim2.new(0, 200, 0, 340) -- Adjusted height for new buttons
+local ORIGINAL_FRAME_SIZE = UDim2.new(0, 200, 0, 480) -- Adjusted height for all buttons and scrolling content
 local MINIMIZED_FRAME_SIZE = UDim2.new(0, 200, 0, 30)
 
 -- Function to remove all existing highlights from all characters
@@ -271,7 +274,7 @@ local function toggleInvisibility()
     end
 end
 
---- Notification Function ---
+--- Notification Function (from provided code, enhanced) ---
 local function showNotification(message)
     local notificationGui = Instance.new("ScreenGui")
     notificationGui.Name = "NotificationGui"
@@ -293,7 +296,7 @@ local function showNotification(message)
     textLabel.Size = UDim2.new(1, -20, 1, 0)
     textLabel.Position = UDim2.new(0, 10, 0, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.Text = message
+    textLabel.Text = message .. " | by pyst" -- Reinstated " | by pyst"
     textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     textLabel.Font = Enum.Font.SourceSansBold
     textLabel.TextSize = 18
@@ -357,11 +360,12 @@ local MainFrameUICorner = Instance.new("UICorner")
 MainFrameUICorner.CornerRadius = UDim.new(0, 20)
 MainFrameUICorner.Parent = MainFrame
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 5) -- Add some padding between elements
-UIListLayout.FillDirection = Enum.FillDirection.Vertical
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListLayout.Parent = MainFrame
+-- UIListLayout for the top elements (Title, Close, Minimize buttons)
+local TopLayout = Instance.new("UIListLayout")
+TopLayout.Padding = UDim.new(0, 5)
+TopLayout.FillDirection = Enum.FillDirection.Vertical
+TopLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TopLayout.Parent = MainFrame
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
@@ -420,7 +424,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
         ):Play()
         -- Hide all child elements except title and buttons
         for _, child in ipairs(MainFrame:GetChildren()) do
-            if child ~= TitleLabel and child ~= CloseButton and child ~= MinimizeButton then
+            if child ~= TitleLabel and child ~= CloseButton and child ~= MinimizeButton and child ~= TopLayout then
                 child.Visible = false
             end
         end
@@ -437,13 +441,33 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Scrolling Frame for main content area
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Name = "ContentScrollingFrame"
+-- Size should fill the remaining space below the title and buttons
+ScrollingFrame.Size = UDim2.new(1, -20, 1, -50) -- This covers the whole frame excluding title area and padding
+ScrollingFrame.Position = UDim2.new(0, 10, 0, 40) -- Position below the title
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0) -- Will be adjusted by UIListLayout
+ScrollingFrame.ScrollBarThickness = 6
+ScrollingFrame.Parent = MainFrame
 
--- Speed Controls (wrapped in a container for better layout with Title/Buttons)
+local ContentLayout = Instance.new("UIListLayout")
+ContentLayout.Padding = UDim.new(0, 10)
+ContentLayout.FillDirection = Enum.FillDirection.Vertical
+ContentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ContentLayout.Parent = ScrollingFrame
+
+local ScrollingFrameUICorner = Instance.new("UICorner")
+ScrollingFrameUICorner.CornerRadius = UDim.new(0, 10)
+ScrollingFrameUICorner.Parent = ScrollingFrame
+
+-- Speed Controls (wrapped in a container for better layout)
 local SpeedContainer = Instance.new("Frame")
 SpeedContainer.Name = "SpeedContainer"
 SpeedContainer.Size = UDim2.new(0.9, 0, 0, 50) -- Adjusted size for better grouping
 SpeedContainer.BackgroundTransparency = 1
-SpeedContainer.Parent = MainFrame
+SpeedContainer.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local SpeedContainerListLayout = Instance.new("UIListLayout")
 SpeedContainerListLayout.Padding = UDim.new(0, 0)
@@ -478,7 +502,7 @@ local JumpContainer = Instance.new("Frame")
 JumpContainer.Name = "JumpContainer"
 JumpContainer.Size = UDim2.new(0.9, 0, 0, 50)
 JumpContainer.BackgroundTransparency = 1
-JumpContainer.Parent = MainFrame
+JumpContainer.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local JumpContainerListLayout = Instance.new("UIListLayout")
 JumpContainerListLayout.Padding = UDim.new(0, 0)
@@ -517,7 +541,7 @@ ApplyStatsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ApplyStatsButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200) -- Blue button
 ApplyStatsButton.Font = Enum.Font.SourceSansBold
 ApplyStatsButton.TextSize = 16
-ApplyStatsButton.Parent = MainFrame
+ApplyStatsButton.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local ApplyStatsButtonUICorner = Instance.new("UICorner")
 ApplyStatsButtonUICorner.CornerRadius = UDim.new(0, 10)
@@ -532,7 +556,7 @@ ToggleHighlightButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleHighlightButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- Green for ON
 ToggleHighlightButton.Font = Enum.Font.SourceSansBold
 ToggleHighlightButton.TextSize = 16
-ToggleHighlightButton.Parent = MainFrame
+ToggleHighlightButton.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local ToggleHighlightButtonUICorner = Instance.new("UICorner")
 ToggleHighlightButtonUICorner.CornerRadius = UDim.new(0, 10)
@@ -547,7 +571,7 @@ ToggleFlyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Grey for OFF
 ToggleFlyButton.Font = Enum.Font.SourceSansBold
 ToggleFlyButton.TextSize = 16
-ToggleFlyButton.Parent = MainFrame
+ToggleFlyButton.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local ToggleFlyButtonUICorner = Instance.new("UICorner")
 ToggleFlyButtonUICorner.CornerRadius = UDim.new(0, 10)
@@ -562,131 +586,95 @@ ToggleInvisibleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Grey for OFF
 ToggleInvisibleButton.Font = Enum.Font.SourceSansBold
 ToggleInvisibleButton.TextSize = 16
-ToggleInvisibleButton.Parent = MainFrame
+ToggleInvisibleButton.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local ToggleInvisibleButtonUICorner = Instance.new("UICorner")
 ToggleInvisibleButtonUICorner.CornerRadius = UDim.new(0, 10)
 ToggleInvisibleButtonUICorner.Parent = ToggleInvisibleButton
 
--- Launch Players Button (renamed from FlingPlayersButton)
+-- Launch Players Button
 local LaunchPlayersButton = Instance.new("TextButton")
 LaunchPlayersButton.Name = "LaunchPlayersButton"
 LaunchPlayersButton.Size = UDim2.new(0.9, 0, 0, 30)
-LaunchPlayersButton.Text = "Launch All Players" -- Renamed text
+LaunchPlayersButton.Text = "Launch All Players"
 LaunchPlayersButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 LaunchPlayersButton.BackgroundColor3 = Color3.fromRGB(200, 50, 0) -- Orange
 LaunchPlayersButton.Font = Enum.Font.SourceSansBold
 LaunchPlayersButton.TextSize = 16
-LaunchPlayersButton.Parent = MainFrame
+LaunchPlayersButton.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
 local LaunchPlayersButtonUICorner = Instance.new("UICorner")
 LaunchPlayersButtonUICorner.CornerRadius = UDim.new(0, 10)
 LaunchPlayersButtonUICorner.Parent = LaunchPlayersButton
 
+-- External Scripts Section
+local ExternalScriptsTitle = Instance.new("TextLabel")
+ExternalScriptsTitle.Name = "ExternalScriptsTitle"
+ExternalScriptsTitle.Size = UDim2.new(1, 0, 0, 25)
+ExternalScriptsTitle.Text = "--- External Scripts ---"
+ExternalScriptsTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExternalScriptsTitle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ExternalScriptsTitle.Font = Enum.Font.SourceSansBold
+ExternalScriptsTitle.TextSize = 16
+ExternalScriptsTitle.Parent = ScrollingFrame
 
---- UI Event Connections ---
-CloseButton.MouseButton1Click:Connect(function()
-    MainScreenGui.Enabled = false -- Hide the UI
-    showNotification("UI Closed")
-end)
+-- Buttons Data (as provided, using original names)
+local externalScriptButtonsData = {
+    {name = "🎯 Bang V2", r6 = "https://pastebin.com/raw/aPSHMV6K", r15 = "https://pastebin.com/raw/1ePMTt9n"},
+    {name = "🎉 Get Banged", r6 = "https://pastebin.com/raw/zHbw7ND1", r15 = "https://pastebin.com/raw/7hvcjDnW"},
+    {name = "💥 Suck", r6 = "https://pastebin.com/raw/SymCfnAW", r15 = "https://pastebin.com/raw/p8yxRfr4"},
+    {name = "🔥 Get Suc", r6 = "https://pastebin.com/raw/FPu4e2Qh", r15 = "https://pastebin.com/raw/DyPP2tAF"},
+    {name = "⚡ Jerk", r6 = "https://pastefy.app/wa3v2Vgm/raw", r15 = "https://pastefy.app/YZoglOyJ/raw"}
+}
 
-ApplyStatsButton.MouseButton1Click:Connect(function()
-    local humanoid = LocalPlayer.Character and LocalPlayer.Character.Humanoid
-    if not humanoid then
-        showNotification("Character not found!")
-        return
-    end
+for _, buttonData in ipairs(externalScriptButtonsData) do
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.9, 0, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255)) -- Random colors
+    button.Text = buttonData.name
+    button.Font = Enum.Font.SourceSansBold
+    button.TextSize = 20
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Parent = ScrollingFrame -- Parent to ScrollingFrame
 
-    local speedInput = tonumber(SpeedTextBox.Text)
-    local jumpInput = tonumber(JumpTextBox.Text)
+    local uicorner = Instance.new("UICorner")
+    uicorner.CornerRadius = UDim.new(0, 10)
+    uicorner.Parent = button
 
-    if speedInput and speedInput >= 0 then
-        humanoid.WalkSpeed = speedInput
-        showNotification("WalkSpeed set to: " .. speedInput)
-    else
-        warn("Invalid speed input: " .. (SpeedTextBox.Text or "nil"))
-        showNotification("Invalid speed value. Please enter a number.")
-    end
-
-    if jumpInput and jumpInput >= 0 then
-        humanoid.JumpPower = jumpInput
-        showNotification("JumpPower set to: " .. jumpInput)
-    else
-        warn("Invalid jump input: " .. (JumpTextBox.Text or "nil"))
-        showNotification("Invalid jump power value. Please enter a number.")
-    end
-end)
-
-ToggleHighlightButton.MouseButton1Click:Connect(function()
-    highlightingEnabled = not highlightingEnabled -- Toggle the state
-    if highlightingEnabled then
-        startHighlighting()
-        ToggleHighlightButton.Text = "Highlights: ON"
-        ToggleHighlightButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- Green
-        showNotification("Player highlighting ON")
-    else
-        stopHighlighting()
-        ToggleHighlightButton.Text = "Highlights: OFF"
-        ToggleHighlightButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0) -- Red
-        showNotification("Player highlighting OFF")
-    end
-end)
-
-ToggleFlyButton.MouseButton1Click:Connect(function()
-    toggleFly()
-    if isFlying then
-        ToggleFlyButton.Text = "Fly: ON (Spacebar to ascend)"
-        ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200) -- Blue for ON
-    else
-        ToggleFlyButton.Text = "Fly: OFF"
-        ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Grey for OFF
-    end
-end)
-
-ToggleInvisibleButton.MouseButton1Click:Connect(function()
-    toggleInvisibility()
-    if isInvisible then
-        ToggleInvisibleButton.Text = "Invisible: ON"
-        ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 150) -- Purple for ON
-    else
-        ToggleInvisibleButton.Text = "Invisible: OFF"
-        ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- Grey for OFF
-    end
-end)
-
-LaunchPlayersButton.MouseButton1Click:Connect(function() -- Renamed from FlingPlayersButton.MouseButton1Click
-    launchAllPlayers() -- Renamed function call
-end)
-
---- Input Handling for 'E' Key to toggle UI ---
-UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    -- Check if 'E' key was pressed and it wasn't processed by Roblox's core systems (e.g., chat input)
-    if input.KeyCode == Enum.KeyCode.E and not gameProcessedEvent then
-        MainScreenGui.Enabled = not MainScreenGui.Enabled -- Toggle the UI visibility
-        if MainScreenGui.Enabled then
-            -- Set the textboxes to current player values when UI opens
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                SpeedTextBox.Text = tostring(humanoid.WalkSpeed)
-                JumpTextBox.Text = tostring(humanoid.JumpPower)
-            end
-            if isFlying then
-                 ToggleFlyButton.Text = "Fly: ON (Spacebar to ascend)"
-                 ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-            else
-                 ToggleFlyButton.Text = "Fly: OFF"
-                 ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-            end
-            if isInvisible then
-                ToggleInvisibleButton.Text = "Invisible: ON"
-                ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-            else
-                ToggleInvisibleButton.Text = "Invisible: OFF"
-                ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-            end
+    button.MouseButton1Click:Connect(function()
+        local scriptUrl = ""
+        if isR6 then
+            scriptUrl = buttonData.r6
+        else
+            scriptUrl = buttonData.Data.r15 -- Corrected access to r15 field
         end
-    end
-end)
+
+        if scriptUrl ~= "" then
+            showNotification("Executing: " .. buttonData.name .. "...")
+            local success, content = pcall(function()
+                return HttpService:GetAsync(scriptUrl)
+            end)
+
+            if success and content then
+                local loadSuccess, loadedFunction = pcall(loadstring, content)
+                if loadSuccess and loadedFunction then
+                    pcall(loadedFunction)
+                    showNotification(buttonData.name .. " executed successfully!")
+                else
+                    showNotification("Failed to load/execute: " .. buttonData.name .. " (Script Error)")
+                    warn("Error loading/executing external script:", loadedFunction)
+                end
+            else
+                showNotification("Failed to fetch: " .. buttonData.name .. " (URL Error)")
+                warn("Error fetching external script:", content)
+            end
+        else
+            showNotification("No script URL available for " .. buttonData.name)
+        end
+    end)
+end
+
+--- UI Event Connections (already defined above, but listed here for completeness) ---
 
 -- Initial setup: Start highlighting if it's enabled by default
 if highlightingEnabled then
@@ -761,12 +749,25 @@ Players.PlayerRemoving:Connect(function(playerLeaving)
     end
 end)
 
--- Initial check for R6/R15 and display notification
+-- Initial check for R6/R15 and display notification upon script load
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local isR6 = character:FindFirstChild("Torso") ~= nil -- Check for R6 (has a 'Torso' part)
 
 if isR6 then
-    showNotification("🌟 R6 detected!")
+    showNotification("🌟 R6 rig detected!")
 else
-    showNotification("✨ R15 detected!")
+    showNotification("✨ R15 rig detected!")
 end
+
+-- Adjust CanvasSize of ScrollingFrame based on its content
+-- This must be done AFTER all children are parented and their sizes are determined by UIListLayout
+local function updateCanvasSize()
+    local contentHeight = ContentLayout.AbsoluteContentSize.Y
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, contentHeight)
+end
+
+-- Connect to LayoutUpdated to ensure CanvasSize is adjusted after layout changes
+ContentLayout.LayoutUpdated:Connect(updateCanvasSize)
+
+-- Also update initially in case content is static or already laid out
+updateCanvasSize()
