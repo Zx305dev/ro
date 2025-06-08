@@ -1,7 +1,7 @@
 --[[
     Roblox Player Control Script (Ultimate Edition)
 
-    This LocalScript provides a robust and visually enhanced UI menu with comprehensive controls for:
+    This LocalScript provides a robust and visually enhanced UI menu with comprehensive controls for: me
     - Player WalkSpeed & JumpPower adjustment
     - Toggling player highlighting (refreshes every 5 seconds)
     - Toggling UI menu visibility (via 'E' key, Close 'X' button, or Minimize '-' button)
