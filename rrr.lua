@@ -9,7 +9,7 @@
     client-side location where it can run.
 
     How it works:
-    1. It continuously checks for all players in the game every 5 seconds.
+    1. It continuously checks for all players in the game every 5 seconds
     2. For each player, it creates a 'Highlight' instance.
     3. The 'Highlight' is parented to the player's Character model.
     4. Existing highlights are destroyed before new ones are created to ensure
