@@ -8,37 +8,43 @@
     - Toggling 'Fly' ability for the local player (Spacebar to ascend)
     - Launching all other players into the air
     - Toggling 'Invisibility' for the local player
-    - **NEW: Teleport to any player by name**
-    - **NEW: Toggle Noclip (walk through walls)**
-    - **NEW: Toggle God Mode (invincibility)**
-    - **NEW: Kill target player (by name)**
-    - **NEW: Heal target player (by name)**
-    - **NEW: A dedicated "External Scripts" section with user-defined button names and URLs.**
+    - Teleport to any player by name
+    - Toggle Noclip (walk through walls)
+    - Toggle God Mode (invincibility)
+    - Kill target player (by name)
+    - Heal target player (by name)
+    - A dedicated "External Scripts" section with user-defined button names and URLs for dynamic script execution.
 
     Key Features & Improvements:
     - Custom animated notification system ("by pyst" attribution included).
-    - Automatic R6/R15 character rig detection and notification.
-    - Highly stylized UI with rounded corners, shadows, and gradients.
-    - Draggable main menu frame for flexible placement.
-    - Smooth minimize/maximize animations for the UI.
-    - **All buttons and input fields are correctly positioned and functional.**
-    - Robust handling for character respawns to maintain active features.
-    - Clear and concise code comments.
+    - Automatic R6/R15 character rig detection and notification on game start.
+    - Highly stylized UI with rounded corners, subtle shadows, and a clean, modern aesthetic.
+    - Draggable main menu frame for flexible placement on the screen.
+    - Smooth minimize/maximize animations for the UI menu.
+    - All buttons and input fields are correctly positioned, sized, and fully functional.
+    - Robust handling for character respawns to ensure active features persist.
+    - Clear and comprehensive code comments for easy understanding.
+    - Dynamic adjustment of the scrolling frame's canvas size to fit all content.
 
     It should be placed in StarterPlayerScripts or any other
     client-side location where it can run.
 
     How it works:
-    1. Services and state variables are initialized for all features.
-    2. A custom `showNotification` function provides animated feedback to the player.
-    3. The main UI (`PlayerControlGui`) is created and parented to `CoreGui` for high control.
-    4. The `MainMenuFrame` contains a `TopBar` (for title, close, minimize buttons) and a `ScrollingFrame` for content.
-    5. `UIListLayout` and `UIPadding` instances are extensively used for consistent spacing and responsive layout.
-    6. Event listeners are set up for all UI buttons and text input fields to trigger their respective functionalities.
-    7. Player status effects (highlighting, fly, invisibility, noclip, god mode) are managed through dedicated functions and state variables.
-    8. Player manipulation (launch, kill, heal, teleport) functions target specified players.
-    9. External scripts are fetched via `HttpService` and executed via `loadstring`, with error handling.
-    10. `CharacterAdded` and `PlayerRemoving` events ensure features persist or clean up correctly upon character changes or player departure.
+    1. Game services and essential state variables are initialized.
+    2. Helper functions are defined for creating UI elements consistently.
+    3. The `showNotification` function provides animated, custom messages.
+    4. Core UI structure (ScreenGui, MainFrame, TopBar, ScrollingFrame) is built,
+       with careful attention to UDim2, UIListLayout, and UIPadding for precise layout.
+    5. Event listeners connect UI interactions (button clicks, textbox input, key presses)
+       to their corresponding feature functions.
+    6. Player status effects (highlighting, fly, invisibility, noclip, god mode)
+       are managed through dedicated toggle functions that modify player properties.
+    7. Player manipulation functions (launch, kill, heal, teleport) operate on targeted players by name.
+    8. The "External Scripts" section uses `HttpService:GetAsync()` to fetch Lua code from provided URLs
+       and `loadstring()` to execute it dynamically, including error handling.
+    9. `CharacterAdded` and `PlayerRemoving` events ensure features are correctly
+       re-applied after respawn or cleaned up when a player leaves.
+    10. The ScrollingFrame's `CanvasSize` is dynamically updated to fit all content.
 ]]
 
 -- Define constants for highlight properties
@@ -66,8 +72,8 @@ local flyAscendConnection = nil
 local flyDescendConnection = nil
 
 local isInvisible = false
-local isNoclipping = false -- New state for Noclip
-local isGodMode = false -- New state for God Mode
+local isNoclipping = false
+local isGodMode = false
 
 -- Feature properties
 local FLY_SPEED = 50
@@ -79,9 +85,9 @@ local NOCLIP_SPEED_MULTIPLIER = 2 -- How much faster Noclip makes you move (rela
 local GOD_MODE_HEALTH = math.huge -- Effectively infinite health
 
 -- UI Frame sizes for minimizing/maximizing
-local FRAME_WIDTH = 250 -- Slightly wider for better appearance
-local ORIGINAL_FRAME_HEIGHT = 650 -- Adjusted to fit all new buttons
-local MINIMIZED_FRAME_HEIGHT = 40 -- Height for minimized menu (just title bar)
+local FRAME_WIDTH = 250 -- Fixed width for the main UI frame
+local ORIGINAL_FRAME_HEIGHT = 650 -- Full height when expanded
+local MINIMIZED_FRAME_HEIGHT = 40 -- Height when minimized (just the top bar)
 
 local ORIGINAL_FRAME_SIZE = UDim2.new(0, FRAME_WIDTH, 0, ORIGINAL_FRAME_HEIGHT)
 local MINIMIZED_FRAME_SIZE = UDim2.new(0, FRAME_WIDTH, 0, MINIMIZED_FRAME_HEIGHT)
@@ -272,7 +278,7 @@ local function toggleInvisibility()
     end
 end
 
--- NEW: Function to toggle Noclip
+-- Function to toggle Noclip
 local noclipConnection = nil
 local function toggleNoclip()
     local character = LocalPlayer.Character
@@ -287,7 +293,7 @@ local function toggleNoclip()
     isNoclipping = not isNoclipping
 
     if isNoclipping then
-        humanoid.WalkSpeed = LocalPlayer.Character.Humanoid.WalkSpeed * NOCLIP_SPEED_MULTIPLIER -- Boost speed
+        humanoid.WalkSpeed = LocalPlayer.Character.Humanoid.WalkSpeed * NOCLIP_SPEED_MULTIPLIER
         humanoid.PlatformStand = true
         for _, part in ipairs(character:GetChildren()) do
             if part:IsA("BasePart") then
@@ -302,7 +308,7 @@ local function toggleNoclip()
         end)
         showNotification("Noclip: ON")
     else
-        humanoid.WalkSpeed = 16 -- Reset speed
+        humanoid.WalkSpeed = 16
         humanoid.PlatformStand = false
         for _, part in ipairs(character:GetChildren()) do
             if part:IsA("BasePart") then
@@ -317,7 +323,7 @@ local function toggleNoclip()
     end
 end
 
--- NEW: Function to toggle God Mode
+-- Function to toggle God Mode
 local function toggleGodMode()
     local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then
@@ -330,17 +336,17 @@ local function toggleGodMode()
     if isGodMode then
         humanoid.MaxHealth = GOD_MODE_HEALTH
         humanoid.Health = GOD_MODE_HEALTH
-        humanoid.Immortal = true -- Prevents most types of damage
+        humanoid.Immortal = true
         showNotification("God Mode: ON")
     else
-        humanoid.MaxHealth = 100 -- Reset to default
-        humanoid.Health = humanoid.MaxHealth -- Reset current health
+        humanoid.MaxHealth = 100
+        humanoid.Health = humanoid.MaxHealth
         humanoid.Immortal = false
         showNotification("God Mode: OFF")
     end
 end
 
--- NEW: Function to kill a player by name
+-- Function to kill a player by name
 local function killPlayer(playerName)
     local targetPlayer = Players:FindFirstChild(playerName)
     if targetPlayer and targetPlayer.Character then
@@ -356,7 +362,7 @@ local function killPlayer(playerName)
     end
 end
 
--- NEW: Function to heal a player by name
+-- Function to heal a player by name
 local function healPlayer(playerName)
     local targetPlayer = Players:FindFirstChild(playerName)
     if targetPlayer and targetPlayer.Character then
@@ -372,7 +378,7 @@ local function healPlayer(playerName)
     end
 end
 
--- NEW: Function to teleport to a player by name
+-- Function to teleport to a player by name
 local function teleportToPlayer(playerName)
     local targetPlayer = Players:FindFirstChild(playerName)
     if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -471,11 +477,11 @@ local function createButton(parent, name, text, size, bgColor, textColor, font, 
     uicorner.CornerRadius = UDim.new(0, 10)
     uicorner.Parent = button
 
-    local uishadow = Instance.new("UIStroke") -- Add a subtle border/shadow
-    uishadow.Color = Color3.fromRGB(0,0,0)
-    uishadow.Transparency = 0.7
-    uishadow.Thickness = 1
-    uishadow.Parent = button
+    local uistroke = Instance.new("UIStroke") -- Add a subtle border/shadow
+    uistroke.Color = Color3.fromRGB(0,0,0)
+    uistroke.Transparency = 0.7
+    uistroke.Thickness = 1
+    uistroke.Parent = button
 
     return button
 end
@@ -527,7 +533,7 @@ MainFrame.Name = "MainMenuFrame"
 MainFrame.Size = ORIGINAL_FRAME_SIZE
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 255) -- Deep Blue
+MainFrame.BackgroundColor3 = Color3.fromRGB(80, 80, 255)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -537,13 +543,13 @@ local MainFrameUICorner = Instance.new("UICorner")
 MainFrameUICorner.CornerRadius = UDim.new(0, 20)
 MainFrameUICorner.Parent = MainFrame
 
-local MainFrameUIStroke = Instance.new("UIStroke") -- Outer border for the main frame
+local MainFrameUIStroke = Instance.new("UIStroke")
 MainFrameUIStroke.Color = Color3.fromRGB(50, 50, 200)
 MainFrameUIStroke.Thickness = 2
 MainFrameUIStroke.Parent = MainFrame
 
 local UIPaddingMain = Instance.new("UIPadding")
-UIPaddingMain.PaddingTop = UDim.new(0, 5) -- Add padding to the top to push content down
+UIPaddingMain.PaddingTop = UDim.new(0, 5)
 UIPaddingMain.PaddingBottom = UDim.new(0, 5)
 UIPaddingMain.PaddingLeft = UDim.new(0, 5)
 UIPaddingMain.PaddingRight = UDim.new(0, 5)
@@ -578,6 +584,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
             TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
             {Size = MINIMIZED_FRAME_SIZE}
         ):Play()
+        -- Hide all content elements
         ScrollingFrame.Visible = false
     else
         TweenService:Create(
@@ -585,6 +592,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
             TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
             {Size = ORIGINAL_FRAME_SIZE}
         ):Play()
+        -- Show all content elements
         ScrollingFrame.Visible = true
     end
 end)
@@ -658,19 +666,19 @@ local ToggleFlyButton = createButton(ScrollingFrame, "ToggleFlyButton", "Fly: OF
 -- Invisible Toggle Button
 local ToggleInvisibleButton = createButton(ScrollingFrame, "ToggleInvisibleButton", "Invisible: OFF", UDim2.new(0.95, 0, 0, 30), Color3.fromRGB(100, 100, 100), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
 
--- NEW: Noclip Toggle Button
+-- Noclip Toggle Button
 local NoclipButton = createButton(ScrollingFrame, "NoclipButton", "Noclip: OFF", UDim2.new(0.95, 0, 0, 30), Color3.fromRGB(100, 100, 100), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
 
--- NEW: God Mode Toggle Button
+-- God Mode Toggle Button
 local GodModeButton = createButton(ScrollingFrame, "GodModeButton", "God Mode: OFF", UDim2.new(0.95, 0, 0, 30), Color3.fromRGB(100, 100, 100), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
 
 -- Launch Players Button
 local LaunchPlayersButton = createButton(ScrollingFrame, "LaunchPlayersButton", "Launch All Players", UDim2.new(0.95, 0, 0, 30), Color3.fromRGB(200, 50, 0), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
 
--- NEW: Player Target Controls
+-- Player Target Controls
 local PlayerTargetContainer = Instance.new("Frame")
 PlayerTargetContainer.Name = "PlayerTargetContainer"
-PlayerTargetContainer.Size = UDim2.new(0.95, 0, 0, 80) -- Adjusted height for textbox and two buttons
+PlayerTargetContainer.Size = UDim2.new(0.95, 0, 0, 80)
 PlayerTargetContainer.BackgroundTransparency = 1
 PlayerTargetContainer.Parent = ScrollingFrame
 
@@ -685,7 +693,7 @@ local PlayerTargetTextBox = createTextBox(PlayerTargetContainer, "PlayerTargetTe
 
 local PlayerActionsFrame = Instance.new("Frame")
 PlayerActionsFrame.Name = "PlayerActionsFrame"
-PlayerActionsFrame.Size = UDim2.new(1, 0, 0, 30) -- Height for two horizontal buttons
+PlayerActionsFrame.Size = UDim2.new(1, 0, 0, 30)
 PlayerActionsFrame.BackgroundTransparency = 1
 PlayerActionsFrame.Parent = PlayerTargetContainer
 
@@ -695,17 +703,9 @@ PlayerActionsLayout.FillDirection = Enum.FillDirection.Horizontal
 PlayerActionsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 PlayerActionsLayout.Parent = PlayerActionsFrame
 
-local KillPlayerButton = createButton(PlayerActionsFrame, "KillPlayerButton", "Kill", UDim2.new(0.48, 0, 0, 25), Color3.fromRGB(200, 0, 0), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
-local HealPlayerButton = createButton(PlayerActionsFrame, "HealPlayerButton", "Heal", UDim2.new(0.48, 0, 0, 25), Color3.fromRGB(0, 200, 0), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
-local TeleportButton = createButton(PlayerActionsFrame, "TeleportButton", "Teleport", UDim2.new(0.48, 0, 0, 25), Color3.fromRGB(0, 150, 150), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
--- Note: The original code for TeleportButton is just one button. If you want more than 3 per row, adjust the UDim2.new(scale, offset) to be smaller for more items, e.g., (0.3, 0, 0, 25) for 3 items. For now, it will put them in a single row or wrap. I will put teleport as a separate line if space is an issue.
-
--- Teleport is a distinct action, better as its own button if not fitting with Kill/Heal
--- Let's put Teleport next to Kill/Heal if it fits, or as a separate button right after.
--- For now, let's keep Kill/Heal in one row and Teleport as a separate button for clarity.
-PlayerActionsFrame.Size = UDim2.new(1, 0, 0, 30) -- Reset size for Kill/Heal only
-TeleportButton.Parent = ScrollingFrame -- Make Teleport a separate button in ScrollingFrame
-TeleportButton.Size = UDim2.new(0.95, 0, 0, 30) -- Full width for Teleport
+local KillPlayerButton = createButton(PlayerActionsFrame, "KillPlayerButton", "Kill", UDim2.new(0.32, 0, 0, 25), Color3.fromRGB(200, 0, 0), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
+local HealPlayerButton = createButton(PlayerActionsFrame, "HealPlayerButton", "Heal", UDim2.new(0.32, 0, 0, 25), Color3.fromRGB(0, 200, 0), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
+local TeleportButton = createButton(PlayerActionsFrame, "TeleportButton", "Teleport", UDim2.new(0.32, 0, 0, 25), Color3.fromRGB(0, 150, 150), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 16)
 
 -- External Scripts Section
 local ExternalScriptsTitle = createLabel(ScrollingFrame, "ExternalScriptsTitle", "--- External Scripts ---", UDim2.new(1, 0, 0, 25), Color3.fromRGB(255, 255, 255), Color3.fromRGB(40, 40, 40), Enum.Font.SourceSansBold, 16)
@@ -720,16 +720,16 @@ local externalScriptButtonsData = {
 }
 
 for _, buttonData in ipairs(externalScriptButtonsData) do
+    -- Clean name for the instance, display text remains original
     local button = createButton(ScrollingFrame, string.gsub(buttonData.name, "%W", "") .. "Button", buttonData.name, UDim2.new(0.95, 0, 0, 40), Color3.fromRGB(math.random(100, 255), math.random(100, 255), math.random(100, 255)), Color3.fromRGB(255, 255, 255), Enum.Font.SourceSansBold, 20)
 
     button.MouseButton1Click:Connect(function()
         local scriptUrl = ""
-        -- Determine R6 or R15 rig
         local isR6 = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Torso") ~= nil
         if isR6 then
             scriptUrl = buttonData.r6
         else
-            scriptUrl = buttonData.r15 -- Corrected access
+            scriptUrl = buttonData.r15
         end
 
         if scriptUrl ~= "" then
@@ -757,12 +757,81 @@ for _, buttonData in ipairs(externalScriptButtonsData) do
     end)
 end
 
---- UI Event Connections for newly added buttons ---
+--- UI Event Connections ---
+CloseButton.MouseButton1Click:Connect(function()
+    MainScreenGui.Enabled = false
+    showNotification("UI Closed")
+end)
+
+ApplyStatsButton.MouseButton1Click:Connect(function()
+    local humanoid = LocalPlayer.Character and LocalPlayer.Character.Humanoid
+    if not humanoid then
+        showNotification("Character not found!")
+        return
+    end
+
+    local speedInput = tonumber(SpeedTextBox.Text)
+    local jumpInput = tonumber(JumpTextBox.Text)
+
+    if speedInput and speedInput >= 0 then
+        humanoid.WalkSpeed = speedInput
+        showNotification("WalkSpeed set to: " .. speedInput)
+    else
+        warn("Invalid speed input: " .. (SpeedTextBox.Text or "nil"))
+        showNotification("Invalid speed value. Please enter a number.")
+    end
+
+    if jumpInput and jumpInput >= 0 then
+        humanoid.JumpPower = jumpInput
+        showNotification("JumpPower set to: " .. jumpInput)
+    else
+        warn("Invalid jump input: " .. (JumpTextBox.Text or "nil"))
+        showNotification("Invalid jump power value. Please enter a number.")
+    end
+end)
+
+ToggleHighlightButton.MouseButton1Click:Connect(function()
+    highlightingEnabled = not highlightingEnabled
+    if highlightingEnabled then
+        startHighlighting()
+        ToggleHighlightButton.Text = "Highlights: ON"
+        ToggleHighlightButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        showNotification("Player highlighting ON")
+    else
+        stopHighlighting()
+        ToggleHighlightButton.Text = "Highlights: OFF"
+        ToggleHighlightButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+        showNotification("Player highlighting OFF")
+    end
+end)
+
+ToggleFlyButton.MouseButton1Click:Connect(function()
+    toggleFly()
+    if isFlying then
+        ToggleFlyButton.Text = "Fly: ON (Spacebar to ascend)"
+        ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+    else
+        ToggleFlyButton.Text = "Fly: OFF"
+        ToggleFlyButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    end
+end)
+
+ToggleInvisibleButton.MouseButton1Click:Connect(function()
+    toggleInvisibility()
+    if isInvisible then
+        ToggleInvisibleButton.Text = "Invisible: ON"
+        ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
+    else
+        ToggleInvisibleButton.Text = "Invisible: OFF"
+        ToggleInvisibleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    end
+end)
+
 NoclipButton.MouseButton1Click:Connect(function()
     toggleNoclip()
     if isNoclipping then
         NoclipButton.Text = "Noclip: ON"
-        NoclipButton.BackgroundColor3 = Color3.fromRGB(0, 150, 150) -- Teal for ON
+        NoclipButton.BackgroundColor3 = Color3.fromRGB(0, 150, 150)
     else
         NoclipButton.Text = "Noclip: OFF"
         NoclipButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
@@ -773,11 +842,15 @@ GodModeButton.MouseButton1Click:Connect(function()
     toggleGodMode()
     if isGodMode then
         GodModeButton.Text = "God Mode: ON"
-        GodModeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0) -- Orange for ON
+        GodModeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
     else
         GodModeButton.Text = "God Mode: OFF"
         GodModeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
     end
+end)
+
+LaunchPlayersButton.MouseButton1Click:Connect(function()
+    launchAllPlayers()
 end)
 
 KillPlayerButton.MouseButton1Click:Connect(function()
@@ -819,7 +892,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
                 SpeedTextBox.Text = tostring(humanoid.WalkSpeed)
                 JumpTextBox.Text = tostring(humanoid.JumpPower)
             end
-            -- Update button states
+            -- Update button states to reflect current feature status
             ToggleHighlightButton.Text = highlightingEnabled and "Highlights: ON" or "Highlights: OFF"
             ToggleHighlightButton.BackgroundColor3 = highlightingEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
 
@@ -843,7 +916,7 @@ if highlightingEnabled then
     startHighlighting()
 end
 
--- Update button texts and colors based on initial state
+-- Update button texts and colors based on initial state (on script load)
 ToggleHighlightButton.Text = highlightingEnabled and "Highlights: ON" or "Highlights: OFF"
 ToggleHighlightButton.BackgroundColor3 = highlightingEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
 
@@ -867,10 +940,11 @@ LocalPlayer.CharacterAdded:Connect(function(character)
     JumpTextBox.Text = tostring(humanoid.JumpPower)
 
     -- Re-apply features if active before respawn
-    if isFlying then toggleFly(); toggleFly() end -- Toggle twice to re-initialize BodyVelocity on new character
-    if isInvisible then toggleInvisibility(); toggleInvisibility() end -- Toggle twice to re-apply transparency on new character
-    if isNoclipping then toggleNoclip(); toggleNoclip() end -- Reapply noclip
-    if isGodMode then toggleGodMode(); toggleGodMode() end -- Reapply God Mode
+    -- Toggling twice ensures the feature is properly re-initialized on the new character
+    if isFlying then toggleFly(); toggleFly() end
+    if isInvisible then toggleInvisibility(); toggleInvisibility() end
+    if isNoclipping then toggleNoclip(); toggleNoclip() end
+    if isGodMode then toggleGodMode(); toggleGodMode() end
 end)
 
 -- Initial setting of textboxes if character already exists on load
@@ -906,7 +980,7 @@ end)
 
 -- Initial check for R6/R15 and display notification upon script load
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local isR6 = character:FindFirstChild("Torso") ~= nil -- Check for R6 (has a 'Torso' part)
+local isR6 = character:FindFirstChild("Torso") ~= nil
 
 if isR6 then
     showNotification("🌟 R6 rig detected! | by pyst")
@@ -916,7 +990,6 @@ end
 
 -- Adjust CanvasSize of ScrollingFrame based on its content dynamically
 local function updateCanvasSize()
-    -- Get the total height of all children inside the ContentLayout
     local contentHeight = ContentLayout.AbsoluteContentSize.Y
     ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, contentHeight + UIPaddingContent.PaddingTop.Offset + UIPaddingContent.PaddingBottom.Offset)
 end
