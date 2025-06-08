@@ -1,7 +1,7 @@
 --[[
     Roblox Player Control Script (Auto-Reset Only)
 
-    This LocalScript provides a simple, reliable UI with a single core feature:h
+    This LocalScript provides a simple, reliable UI with a single core feature:
     automatically resetting your character upon death.
 
     Key Features:
@@ -32,7 +32,7 @@ local CoreGui = game:GetService("CoreGui")
 
 -- STATE VARIABLES (for toggles and feature management)
 local isAutoResetEnabled = false
-local characterDiedConnection = nil
+local characterDiedConnection = nil -- Stores the connection for the Humanoid.Died event
 
 -- UI DIMENSIONS
 local FRAME_WIDTH = 250
@@ -157,52 +157,57 @@ local function showNotification(message)
     end)
 end
 
--- AUTO-RESET FUNCTION
-local function toggleAutoReset(button)
-    isAutoResetEnabled = not isAutoResetEnabled
-
+-- AUTO-RESET FUNCTIONS
+-- This function is called when the character dies
+local function onCharacterDied()
+    -- Check if auto-reset is still enabled before loading character
     if isAutoResetEnabled then
-        local function onCharacterDied()
-            LocalPlayer:LoadCharacter()
-            showNotification("Character auto-reset!")
-        end
+        LocalPlayer:LoadCharacter()
+        showNotification("Character auto-reset!")
+    end
+end
 
-        local function connectToDied(char)
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                -- Disconnect previous connection if it exists to prevent duplicates
-                if characterDiedConnection then
-                    characterDiedConnection:Disconnect()
-                end
-                characterDiedConnection = humanoid.Died:Connect(onCharacterDied)
-            end
-        end
-
-        -- Connect for current character
-        if LocalPlayer.Character then
-            connectToDied(LocalPlayer.Character)
-        end
-        -- Connect for future characters
-        LocalPlayer.CharacterAdded:Connect(connectToDied)
-
-        button.Text = "Auto Reset: ON"
-        button.BackgroundColor3 = ACCENT_GREEN
-        showNotification("Auto Reset: ON")
-    else
+-- This function connects/disconnects the Humanoid.Died event for a given character
+local function manageDiedConnection(character, enable)
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        -- Disconnect any existing connection first to prevent duplicates
         if characterDiedConnection then
             characterDiedConnection:Disconnect()
             characterDiedConnection = nil
         end
-        -- Disconnect CharacterAdded listener for respawn management, if it's solely for auto-reset
-        -- (In this simplified script, the CharacterAdded listener is directly inside toggleAutoReset,
-        -- so disconnecting the 'Died' event is sufficient. If CharacterAdded was persistent,
-        -- more complex cleanup would be needed.)
+
+        if enable then
+            characterDiedConnection = humanoid.Died:Connect(onCharacterDied)
+            print("Humanoid.Died connected for:", character.Name) -- Debug print
+        else
+            print("Humanoid.Died disconnected for:", character.Name) -- Debug print
+        end
+    end
+end
+
+-- This is the main toggle function for the button
+local function toggleAutoReset(button)
+    isAutoResetEnabled = not isAutoResetEnabled
+
+    if isAutoResetEnabled then
+        -- If auto-reset is enabled, connect to the current character's Died event
+        if LocalPlayer.Character then
+            manageDiedConnection(LocalPlayer.Character, true)
+        end
+        button.Text = "Auto Reset: ON"
+        button.BackgroundColor3 = ACCENT_GREEN
+        showNotification("Auto Reset: ON")
+    else
+        -- If auto-reset is disabled, disconnect from the current character's Died event
+        if LocalPlayer.Character then
+            manageDiedConnection(LocalPlayer.Character, false)
+        end
         button.Text = "Auto Reset: OFF"
         button.BackgroundColor3 = ACCENT_RED
         showNotification("Auto Reset: OFF")
     end
 end
-
 
 -- UI CREATION
 local mainScreenGui = Instance.new("ScreenGui", CoreGui)
@@ -258,18 +263,21 @@ local closeOpenButton = createTextButton(
 
 -- UI EVENT CONNECTIONS
 closeOpenButton.MouseButton1Click:Connect(function()
+    print("Close/Open button clicked.") -- Debug print
     mainFrame.Visible = not mainFrame.Visible
     closeOpenButton.Text = mainFrame.Visible and "Close" or "Open"
     showNotification(mainFrame.Visible and "UI Shown" or "UI Hidden")
 end)
 
 autoResetButton.MouseButton1Click:Connect(function()
+    print("Auto Reset button clicked.") -- Debug print
     toggleAutoReset(autoResetButton)
 end)
 
 -- 'E' key to toggle UI visibility
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     if input.KeyCode == Enum.KeyCode.E and not gameProcessedEvent then
+        print("'E' key pressed. Toggling UI.") -- Debug print
         mainFrame.Visible = not mainFrame.Visible
         closeOpenButton.Text = mainFrame.Visible and "Close" or "Open"
         showNotification(mainFrame.Visible and "UI Shown" or "UI Hidden")
@@ -278,6 +286,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
         if mainFrame.Visible then
             autoResetButton.BackgroundColor3 = isAutoResetEnabled and ACCENT_GREEN or ACCENT_RED
         end
+    end
+end)
+
+-- CharacterAdded listener to ensure the 'Died' event is connected for new characters (respawns)
+LocalPlayer.CharacterAdded:Connect(function(character)
+    print("CharacterAdded event fired for:", character.Name) -- Debug print
+    if isAutoResetEnabled then
+        manageDiedConnection(character, true) -- Reconnect if auto-reset is enabled
     end
 end)
 
@@ -290,5 +306,5 @@ else
     showNotification("✨ R15 rig detected! | by pyst")
 end
 
--- Ensure initial button state is correct
+-- Ensure initial button state is correct on script load
 autoResetButton.BackgroundColor3 = isAutoResetEnabled and ACCENT_GREEN or ACCENT_RED
