@@ -1,4 +1,4 @@
--- Elite V5 PRO 2025 - سكربت متكامل ومحسن بالكامل مع Face Bang بطيء + ON/OFF و تحديث بيانات السيرفر واللاعب تلقائياً
+-- Elite V5 PRO 2025 - سكربت Face Bang بطيء مع تعديل موقع اللاعب: فوق، قدام، وورا مع ON/OFF + تحديث معلومات كاملة
 
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
@@ -262,7 +262,6 @@ do
         end
     end
 
-    -- تحديث مستمر للبيانات كل نصف ثانية
     spawn(function()
         while EliteMenu.Parent do
             updatePlayerInfo()
@@ -293,24 +292,14 @@ do
     addUICorner(infoText, 18)
 
     local function updateServerInfo()
-        local maxPlayers = 20 -- عدل هنا لو السيرفر يسمح أكثر
-        local currentPlayers = #Players:GetPlayers()
-        local success, info = pcall(function()
-            return MarketplaceService:GetProductInfo(game.PlaceId)
-        end)
+        local serverName = game:GetService("NetworkServer") and "Local Server" or "Roblox Server" -- مجرد مثال للتغيير
+        local playerCount = #Players:GetPlayers()
+        local maxPlayers = 50 -- يمكنك تغييره حسب سيرفرك
+        local fps = math.floor(1 / task.wait(0))
+        local placeId = game.PlaceId
 
-        local serverName = success and info.Name or "غير معروف"
-
-        infoText.Text = string.format([[
-معلومات السيرفر:
-
-• اسم السيرفر: %s
-• اللاعبين المتصلين الآن: %d / %d
-• الوقت الحالي: %s
-• رقم المكان: %d
-
-*تم تطوير الواجهة بواسطة Elite V5 PRO
-        ]], serverName, currentPlayers, maxPlayers, os.date("%H:%M:%S"), game.PlaceId)
+        infoText.Text = ("معلومات السيرفر:\n\nاسم السيرفر: %s\nعدد اللاعبين: %d/%d\nوقت اللعب: %s\nمعرف الخريطة: %d\nFPS تقريبي: %d")
+            :format(serverName, playerCount, maxPlayers, os.date("%X"), placeId, fps)
     end
 
     spawn(function()
@@ -321,7 +310,7 @@ do
     end)
 end
 
--- ======= صفحة 18+ مع Face Bang بطيء + ON/OFF ======= --
+-- ======= صفحة 18+ مع Face Bang بطيء مع تحريك اللاعب فوق، أمام، ووراء مع On/Off ======= --
 do
     local page = pages["18+"]
 
@@ -332,7 +321,7 @@ do
     instructions.TextColor3 = Color3.new(1, 1, 1)
     instructions.Font = Enum.Font.GothamBold
     instructions.TextSize = 20
-    instructions.Text = "اكتب اسم اللاعب ثم اضغط تشغيل أو إيقاف Face Bang."
+    instructions.Text = "اكتب اسم اللاعب المستهدف ثم اضغط تشغيل أو إيقاف Face Bang."
     instructions.TextXAlignment = Enum.TextXAlignment.Center
 
     local inputBox = Instance.new("TextBox", page)
@@ -385,7 +374,7 @@ do
 
     local function faceBang(targetPlayer)
         if faceBangRunning then
-            statusLabel.Text = "الحالة: Face Bang قيد التشغيل بالفعل"
+            statusLabel.Text = "الحالة: Face Bang شغال بالفعل"
             return
         end
         if not targetPlayer or not targetPlayer.Character then
@@ -413,7 +402,6 @@ do
 
         local toggle = true
         local count = 0
-        local maxCount = math.huge -- لا نهائي طالما مفتوح
         local speed = 0.2 -- بطيء جداً
 
         faceBangConnection = RunService.RenderStepped:Connect(function(dt)
@@ -427,16 +415,20 @@ do
             if count < speed then return end
             count = 0
 
-            -- تحديد موقع أمام وجه الهدف 1.5 studs
+            -- تعديل الموقع: فوق (1.2 studs) + أمام (1.5 studs) ووراء (0.3 studs)
             local targetCFrame = headTarget.CFrame
-            local offset = targetCFrame.LookVector * 1.5
-            local newPos = targetCFrame.Position + offset
+            local upOffset = Vector3.new(0, 1.2, 0)
+            local forwardOffset = targetCFrame.LookVector * 1.5
+            local backOffset = targetCFrame.LookVector * -0.3
 
+            local newPos
             if toggle then
-                hrpLocal.CFrame = CFrame.new(newPos + targetCFrame.LookVector * 0.3, targetCFrame.Position)
+                newPos = targetCFrame.Position + upOffset + forwardOffset
             else
-                hrpLocal.CFrame = CFrame.new(newPos - targetCFrame.LookVector * 0.3, targetCFrame.Position)
+                newPos = targetCFrame.Position + upOffset + backOffset
             end
+
+            hrpLocal.CFrame = CFrame.new(newPos, targetCFrame.Position)
 
             toggle = not toggle
         end)
@@ -490,7 +482,7 @@ local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 520, 0, 60)}):Play()
+        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 520, 0, 90)}):Play()
         for _, child in pairs(frame:GetChildren()) do
             if child ~= header then
                 child.Visible = false
@@ -538,5 +530,5 @@ local function showNotification(text)
     end)
 end
 
-showNotification("مرحبا بك في Elite V5 PRO | 2025 | متكامل ومحسن")
+showNotification("مرحبا بك في Elite V5 PRO | 2025 | متكامل ومحسن مع Face Bang بطيء!")
 
