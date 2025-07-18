@@ -1,22 +1,27 @@
--- Elite V5 PRO GUI متكامل مع سكربتات 18+ حصرية بدون حقوق | تحسين كامل للواجهة | تحريك النافذة
+-- Elite V5 PRO GUI متكامل ومطور 2025
+-- شامل: صفحة رئيسية (بروفايل مع صورة اللاعب + معلومات كاملة)
+-- صفحة معلومات السيرفر
+-- صفحة 18+ مع أوامر Face و Bang على لاعب بالاسم
+-- قابل للسحب والتحريك، بأحجام محسنة وتجربة مستخدم سلسة
 
--- Prevent multiple instances
+-- منع تشغيل نسخ متعددة
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
--- Services
+-- الخدمات
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
 
--- Root GUI Setup
+-- إنشاء واجهة المستخدم الأساسية
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
 EliteMenu.ResetOnSpawn = false
 EliteMenu.Parent = game.CoreGui
 
--- Utility Functions
+-- دوال مساعدة
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 8)
@@ -28,15 +33,13 @@ local function tweenColor(instance, property, goalColor, duration)
     TweenService:Create(instance, TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {[property] = goalColor}):Play()
 end
 
--- Dragging Functionality for any frame
+-- دالة جعل الإطار قابل للسحب
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
-
     local function update(input)
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -49,13 +52,11 @@ local function makeDraggable(frame)
             end)
         end
     end)
-
     frame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             dragInput = input
         end
     end)
-
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             update(input)
@@ -63,28 +64,28 @@ local function makeDraggable(frame)
     end)
 end
 
--- Main Frame
+-- === إنشاء الإطار الرئيسي ===
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 460, 0, 520) -- أكبر حجم محسّن
-frame.Position = UDim2.new(0.25, 0, 0.15, 0)
-frame.BackgroundColor3 = Color3.fromRGB(90, 0, 130)
+frame.Size = UDim2.new(0, 500, 0, 550) -- حجم أكبر ومناسب
+frame.Position = UDim2.new(0.5, -250, 0.3, 0)
+frame.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 frame.BorderSizePixel = 0
 frame.Active = true
+frame.Draggable = true
 frame.Parent = EliteMenu
-addUICorner(frame, 20)
+addUICorner(frame, 18)
 makeDraggable(frame)
 
--- Header Bar
+-- === شريط العنوان ===
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1, 0, 0, 45)
-header.BackgroundColor3 = Color3.fromRGB(70, 0, 110)
+header.BackgroundColor3 = Color3.fromRGB(50, 0, 90)
 header.BorderSizePixel = 0
-addUICorner(header, 20)
-makeDraggable(header)
+addUICorner(header, 18)
 
 local title = Instance.new("TextLabel", header)
-title.Text = "Elite V5 PRO | ALm6eri"
+title.Text = "Elite V5 PRO | متكامل 2025"
 title.Size = UDim2.new(0.75, 0, 1, 0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
@@ -93,33 +94,33 @@ title.TextColor3 = Color3.new(1, 1, 1)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Position = UDim2.new(0.03, 0, 0, 0)
 
--- Close Button
+-- زر الإغلاق
 local closeBtn = Instance.new("TextButton", header)
-closeBtn.Size = UDim2.new(0, 50, 1, 0)
-closeBtn.Position = UDim2.new(0.91, 0, 0, 0)
+closeBtn.Size = UDim2.new(0, 40, 0, 40)
+closeBtn.Position = UDim2.new(0.92, 0, 0, 3)
 closeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 closeBtn.Text = "×"
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 36
+closeBtn.TextSize = 30
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.AutoButtonColor = false
-addUICorner(closeBtn, 18)
+addUICorner(closeBtn, 14)
 
--- Minimize Button
+-- زر التصغير
 local minimizeBtn = Instance.new("TextButton", header)
-minimizeBtn.Size = UDim2.new(0, 50, 1, 0)
-minimizeBtn.Position = UDim2.new(0.82, 0, 0, 0)
+minimizeBtn.Size = UDim2.new(0, 40, 0, 40)
+minimizeBtn.Position = UDim2.new(0.83, 0, 0, 3)
 minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 195, 0)
 minimizeBtn.Text = "–"
 minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 38
+minimizeBtn.TextSize = 32
 minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
 minimizeBtn.AutoButtonColor = false
-addUICorner(minimizeBtn, 18)
+addUICorner(minimizeBtn, 14)
 
--- Pages Bar
+-- === شريط الصفحات ===
 local pageBar = Instance.new("Frame", frame)
-pageBar.Size = UDim2.new(1, 0, 0, 60)
+pageBar.Size = UDim2.new(1, 0, 0, 55)
 pageBar.Position = UDim2.new(0, 0, 0, 45)
 pageBar.BackgroundTransparency = 1
 
@@ -127,72 +128,42 @@ local pageLayout = Instance.new("UIListLayout", pageBar)
 pageLayout.FillDirection = Enum.FillDirection.Horizontal
 pageLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 pageLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-pageLayout.Padding = UDim.new(0.04, 0)
+pageLayout.Padding = UDim.new(0.03, 0)
 
--- Pages Container
+-- === حاوية الصفحات ===
 local pagesContainer = Instance.new("Frame", frame)
-pagesContainer.Size = UDim2.new(1, 0, 1, -105)
-pagesContainer.Position = UDim2.new(0, 0, 0, 105)
+pagesContainer.Size = UDim2.new(1, 0, 1, -100)
+pagesContainer.Position = UDim2.new(0, 0, 0, 100)
 pagesContainer.BackgroundTransparency = 1
 
--- Create Page Buttons
+-- إنشاء أزرار الصفحات ودوال الانتقال بينهم
+local pages = {}
+local pageButtons = {}
+
+local pageNames = {"الرئيسية", "معلومات السيرفر", "18+"}
+
 local function createPageButton(name)
     local btn = Instance.new("TextButton")
     btn.Text = name
-    btn.Size = UDim2.new(0, 150, 0, 50)
+    btn.Size = UDim2.new(0, 140, 0, 45)
     btn.BackgroundColor3 = Color3.fromRGB(130, 0, 200)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 24
+    btn.TextSize = 22
     btn.AutoButtonColor = false
-    addUICorner(btn, 18)
+    addUICorner(btn, 14)
 
     btn.MouseEnter:Connect(function()
-        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(200, 0, 255), 0.25)
+        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(200, 0, 255), 0.2)
     end)
 
     btn.MouseLeave:Connect(function()
-        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(130, 0, 200), 0.25)
+        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(130, 0, 200), 0.2)
     end)
 
     return btn
 end
 
--- Toggle Button Creator
-local togglesState = {}
-local function createToggleButton(parent, text, posY, key, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.9, 0, 0, 50)
-    btn.Position = UDim2.new(0.05, 0, posY, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(130, 0, 200)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 24
-    btn.Text = text .. " : إيقاف"
-    btn.AutoButtonColor = false
-    addUICorner(btn, 20)
-
-    togglesState[key] = false
-
-    btn.MouseButton1Click:Connect(function()
-        togglesState[key] = not togglesState[key]
-        local status = togglesState[key] and "تشغيل" or "إيقاف"
-        btn.Text = text .. " : " .. status
-        tweenColor(btn, "BackgroundColor3", togglesState[key] and Color3.fromRGB(0, 200, 90) or Color3.fromRGB(130, 0, 200), 0.3)
-        callback(togglesState[key])
-    end)
-
-    btn.MouseEnter:Connect(function()
-        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(180, 50, 220), 0.2)
-    end)
-    btn.MouseLeave:Connect(function()
-        tweenColor(btn, "BackgroundColor3", togglesState[key] and Color3.fromRGB(0, 200, 90) or Color3.fromRGB(130, 0, 200), 0.2)
-    end)
-
-    return btn
-end
-
--- Hide all pages utility
 local function hideAllPages()
     for _, p in pairs(pagesContainer:GetChildren()) do
         if p:IsA("Frame") then
@@ -201,12 +172,7 @@ local function hideAllPages()
     end
 end
 
--- Pages setup
-local pages = {}
-local pageButtons = {}
-local pageNames = {"الرئيسية", "ESP", "18+"}
-
-for index, name in ipairs(pageNames) do
+for i, name in ipairs(pageNames) do
     local btn = createPageButton(name)
     btn.Parent = pageBar
     pageButtons[name] = btn
@@ -221,281 +187,248 @@ for index, name in ipairs(pageNames) do
     btn.MouseButton1Click:Connect(function()
         hideAllPages()
         page.Visible = true
-        page.BackgroundTransparency = 1
-        TweenService:Create(page, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     end)
 end
+
+-- نفتح الصفحة الرئيسية افتراضياً
 hideAllPages()
 pages["الرئيسية"].Visible = true
 
--- ====== الصفحة الرئيسية (Main) ======
+-- ======= محتوى الصفحة الرئيسية: معلومات اللاعب والبروفايل =======
 do
     local page = pages["الرئيسية"]
 
-    -- Player Info Frame
+    -- حاوية معلومات اللاعب
     local playerInfoFrame = Instance.new("Frame", page)
-    playerInfoFrame.Size = UDim2.new(0.9, 0, 0, 140)
-    playerInfoFrame.Position = UDim2.new(0.05, 0, 0.03, 0)
-    playerInfoFrame.BackgroundColor3 = Color3.fromRGB(75, 0, 130)
+    playerInfoFrame.Size = UDim2.new(0.95, 0, 0, 180)
+    playerInfoFrame.Position = UDim2.new(0.025, 0, 0.02, 0)
+    playerInfoFrame.BackgroundColor3 = Color3.fromRGB(90, 0, 180)
     playerInfoFrame.BorderSizePixel = 0
-    addUICorner(playerInfoFrame, 20)
+    addUICorner(playerInfoFrame, 18)
 
-    local player = Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
+    -- صورة البروفايل (يتم تحميل صورة لاعب تلقائياً)
+    local profileImage = Instance.new("ImageLabel", playerInfoFrame)
+    profileImage.Size = UDim2.new(0, 120, 0, 120)
+    profileImage.Position = UDim2.new(0.02, 0, 0.1, 0)
+    profileImage.BackgroundTransparency = 1
+    profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+    addUICorner(profileImage, 60)
 
-    -- Username Label
-    local usernameLabel = Instance.new("TextLabel", playerInfoFrame)
-    usernameLabel.Size = UDim2.new(0.6, 0, 0, 40)
-    usernameLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
-    usernameLabel.BackgroundTransparency = 1
-    usernameLabel.Font = Enum.Font.GothamBold
-    usernameLabel.TextSize = 28
-    usernameLabel.TextColor3 = Color3.new(1, 1, 1)
-    usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    usernameLabel.Text = "اسم اللاعب: " .. player.Name
+    -- اسم اللاعب
+    local playerNameLabel = Instance.new("TextLabel", playerInfoFrame)
+    playerNameLabel.Size = UDim2.new(0.6, 0, 0, 40)
+    playerNameLabel.Position = UDim2.new(0.45, 0, 0.15, 0)
+    playerNameLabel.BackgroundTransparency = 1
+    playerNameLabel.Font = Enum.Font.GothamBold
+    playerNameLabel.TextSize = 28
+    playerNameLabel.TextColor3 = Color3.new(1, 1, 1)
+    playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
+    playerNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Health Bar Background
-    local healthBarBG = Instance.new("Frame", playerInfoFrame)
-    healthBarBG.Size = UDim2.new(0.85, 0, 0, 40)
-    healthBarBG.Position = UDim2.new(0.05, 0, 0.5, 0)
-    healthBarBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    healthBarBG.BorderSizePixel = 0
-    addUICorner(healthBarBG, 20)
+    -- المستوى الافتراضي: كمثال (يمكن ربطها مع بيانات حقيقية من السيرفر)
+    local levelLabel = Instance.new("TextLabel", playerInfoFrame)
+    levelLabel.Size = UDim2.new(0.5, 0, 0, 30)
+    levelLabel.Position = UDim2.new(0.45, 0, 0.45, 0)
+    levelLabel.BackgroundTransparency = 1
+    levelLabel.Font = Enum.Font.GothamBold
+    levelLabel.TextSize = 22
+    levelLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+    levelLabel.Text = "المستوى: 23" -- عينة ثابتة
 
-    -- Health Bar Fill
-    local healthBarFill = Instance.new("Frame", healthBarBG)
-    healthBarFill.Size = UDim2.new(1, 0, 1, 0)
-    healthBarFill.BackgroundColor3 = Color3.fromRGB(0, 200, 90)
-    addUICorner(healthBarFill, 20)
+    -- الصحة + سرعة الحركة + الطاقة (مثال ديناميكي)
+    local statsContainer = Instance.new("Frame", playerInfoFrame)
+    statsContainer.Size = UDim2.new(0.9, 0, 0, 60)
+    statsContainer.Position = UDim2.new(0.05, 0, 0.7, 0)
+    statsContainer.BackgroundTransparency = 1
 
-    -- Health Text
-    local healthLabel = Instance.new("TextLabel", healthBarBG)
-    healthLabel.Size = UDim2.new(1, 0, 1, 0)
-    healthLabel.BackgroundTransparency = 1
-    healthLabel.Font = Enum.Font.GothamBold
-    healthLabel.TextSize = 24
-    healthLabel.TextColor3 = Color3.new(1, 1, 1)
-    healthLabel.TextXAlignment = Enum.TextXAlignment.Center
-    healthLabel.TextYAlignment = Enum.TextYAlignment.Center
-    healthLabel.Text = "الصحة: --"
+    local function createStatBar(parent, label, color, positionX)
+        local container = Instance.new("Frame", parent)
+        container.Size = UDim2.new(0.3, 0, 0.8, 0)
+        container.Position = UDim2.new(positionX, 0, 0.1, 0)
+        container.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        addUICorner(container, 12)
 
-    -- Update health bar dynamically
-    local function updateHealth()
-        local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-        healthBarFill:TweenSize(UDim2.new(healthPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.5, true)
-        healthLabel.Text = string.format("الصحة: %d / %d", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+        local fill = Instance.new("Frame", container)
+        fill.Size = UDim2.new(0.7, 0, 1, 0) -- نسبة تعبئة ثابتة مثلاً (يمكن ربطها بالحالة الفعلية)
+        fill.BackgroundColor3 = color
+        addUICorner(fill, 12)
+
+        local labelText = Instance.new("TextLabel", container)
+        labelText.Size = UDim2.new(1, 0, 1, 0)
+        labelText.BackgroundTransparency = 1
+        labelText.Text = label
+        labelText.Font = Enum.Font.GothamBold
+        labelText.TextSize = 16
+        labelText.TextColor3 = Color3.new(1, 1, 1)
+        labelText.TextXAlignment = Enum.TextXAlignment.Center
+
+        return {container = container, fill = fill}
     end
-    updateHealth()
-    humanoid.HealthChanged:Connect(updateHealth)
 
-    -- Speed Hack Toggle
-    createToggleButton(page, "تسريع الشخصية", 0.4, "speed", function(state)
-        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = state and 100 or 16
+    local healthBar = createStatBar(statsContainer, "الصحة", Color3.fromRGB(0, 200, 90), 0)
+    local speedBar = createStatBar(statsContainer, "السرعة", Color3.fromRGB(0, 150, 255), 0.35)
+    local energyBar = createStatBar(statsContainer, "الطاقة", Color3.fromRGB(255, 215, 0), 0.7)
+
+    -- مثال لتحديث الصحة والحركة - ربط بالحالة الحقيقية لو متاح
+    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local function updateStats()
+            local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+            healthBar.fill:TweenSize(UDim2.new(healthPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
+
+            local speedPercent = math.clamp(humanoid.WalkSpeed / 30, 0, 1)
+            speedBar.fill:TweenSize(UDim2.new(speedPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
+
+            -- طاقة افتراضية (يمكن ربطها بحالة فعلية)
+            local energyPercent = 0.75
+            energyBar.fill:TweenSize(UDim2.new(energyPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
         end
-    end)
+        updateStats()
+        humanoid:GetPropertyChangedSignal("Health"):Connect(updateStats)
+        humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(updateStats)
+    end
 
-    -- Jump Hack Toggle
-    createToggleButton(page, "زيادة القفز", 0.5, "jump", function(state)
-        if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
-            player.Character.Humanoid.JumpPower = state and 150 or 50
-        end
+    -- زر تحديث بروفايل اللاعب (إذا تم تغيير شخصية)
+    LocalPlayer.CharacterAdded:Connect(function(char)
+        wait(1)
+        profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+        playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
     end)
-
-    -- Fly Toggle
-    local flyBV, flyConn
-    createToggleButton(page, "الطيران", 0.6, "fly", function(state)
-        local char = player.Character or player.CharacterAdded:Wait()
-        local hrp = char:WaitForChild("HumanoidRootPart")
-        if state then
-            flyBV = Instance.new("BodyVelocity", hrp)
-            flyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            flyBV.Velocity = Vector3.new(0,0,0)
-            flyConn = RunService.Heartbeat:Connect(function()
-                local cam = workspace.CurrentCamera
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    flyBV.Velocity = cam.CFrame.LookVector * 50
-                elseif UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    flyBV.Velocity = -cam.CFrame.LookVector * 50
-                else
-                    flyBV.Velocity = Vector3.new(0,0,0)
-                end
-            end)
-        else
-            if flyBV then flyBV:Destroy() flyBV = nil end
-            if flyConn then flyConn:Disconnect() flyConn = nil end
-        end
-    end)
-
 end
 
--- ====== صفحة ESP (رؤية اللاعبين) ======
+-- ======= محتوى صفحة معلومات السيرفر =======
 do
-    local page = pages["ESP"]
-    local espEnabled = false
-    local espBoxes = {}
+    local page = pages["معلومات السيرفر"]
 
-    local function clearESP()
-        for _, box in pairs(espBoxes) do
-            box:Destroy()
-        end
-        espBoxes = {}
-    end
+    local infoText = Instance.new("TextLabel", page)
+    infoText.Size = UDim2.new(0.95, 0, 0.9, 0)
+    infoText.Position = UDim2.new(0.025, 0, 0.05, 0)
+    infoText.BackgroundColor3 = Color3.fromRGB(90, 0, 180)
+    infoText.TextColor3 = Color3.new(1, 1, 1)
+    infoText.Font = Enum.Font.GothamBold
+    infoText.TextSize = 18
+    infoText.TextWrapped = true
+    infoText.TextXAlignment = Enum.TextXAlignment.Left
+    infoText.TextYAlignment = Enum.TextYAlignment.Top
+    infoText.BorderSizePixel = 0
+    addUICorner(infoText, 18)
 
-    local function createESP(player)
-        if player == Players.LocalPlayer then return end
-        local box = Instance.new("BoxHandleAdornment")
-        box.Adornee = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        box.AlwaysOnTop = true
-        box.ZIndex = 10
-        box.Size = Vector3.new(4, 6, 1)
-        box.Color3 = Color3.fromRGB(255, 0, 0)
-        box.Transparency = 0.5
-        box.Parent = workspace.CurrentCamera
-        return box
-    end
+    -- بيانات السيرفر (مثال، يمكن ربطها بالبيانات الحقيقية لو متاحة)
+    local maxPlayers = 20
+    local currentPlayers = #Players:GetPlayers()
+    local serverName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
 
-    local toggleBtn = createToggleButton(page, "تشغيل ESP", 0.1, "esp", function(state)
-        espEnabled = state
-        if espEnabled then
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local box = createESP(plr)
-                    if box then
-                        espBoxes[plr] = box
-                    end
-                end
-            end
-            Players.PlayerAdded:Connect(function(plr)
-                if espEnabled then
-                    repeat wait() until plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-                    local box = createESP(plr)
-                    if box then espBoxes[plr] = box end
-                end
-            end)
-            Players.PlayerRemoving:Connect(function(plr)
-                if espBoxes[plr] then
-                    espBoxes[plr]:Destroy()
-                    espBoxes[plr] = nil
-                end
-            end)
-        else
-            clearESP()
-        end
-    end)
+    infoText.Text = string.format([[
+معلومات السيرفر:
 
+• اسم السيرفر: %s
+• اللاعبين المتصلين الآن: %d / %d
+• الوقت: %s
+• رقم المكان: %d
+
+*تم تطوير الواجهة بواسطة Elite V5 PRO
+    ]], serverName, currentPlayers, maxPlayers, os.date("%H:%M:%S"), game.PlaceId)
 end
 
--- ====== صفحة 18+ ======
+-- ======= صفحة 18+ (Face Bang) - تنفيذ حركات على لاعب معين =======
 do
     local page = pages["18+"]
 
-    -- Label
-    local label = Instance.new("TextLabel", page)
-    label.Size = UDim2.new(0.9, 0, 0, 40)
-    label.Position = UDim2.new(0.05, 0, 0.05, 0)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 28
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.Text = "سكربتات 18+ حصرية وبدون حقوق"
+    -- تعليمات
+    local instructions = Instance.new("TextLabel", page)
+    instructions.Size = UDim2.new(0.95, 0, 0, 50)
+    instructions.Position = UDim2.new(0.025, 0, 0.02, 0)
+    instructions.BackgroundTransparency = 1
+    instructions.TextColor3 = Color3.new(1, 1, 1)
+    instructions.Font = Enum.Font.GothamBold
+    instructions.TextSize = 20
+    instructions.Text = "اكتب اسم اللاعب واضغط Execute لتشغيل FaceBang"
+    instructions.TextXAlignment = Enum.TextXAlignment.Center
 
-    -- Function to run an injected script (simulate a '18+ script')
-    local function runHotScript(name)
-        if name == "Bang Bang V3" then
-            local plr = Players.LocalPlayer
-            local char = plr.Character or plr.CharacterAdded:Wait()
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = 30
-                hum.JumpPower = 75
-                task.delay(5, function()
-                    if hum then
-                        hum.WalkSpeed = 16
-                        hum.JumpPower = 50
-                    end
-                end)
-                game.StarterGui:SetCore("SendNotification", {
-                    Title = "Bang Bang V3",
-                    Text = "تم تفعيل سكربت Bang Bang 18+ بنجاح!",
-                    Duration = 4
-                })
-            end
-        elseif name == "Hot Spray" then
-            local plr = Players.LocalPlayer
-            local char = plr.Character or plr.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            local particle = Instance.new("ParticleEmitter")
-            particle.Texture = "rbxassetid://258128463"
-            particle.Lifetime = NumberRange.new(0.5, 0.8)
-            particle.Rate = 150
-            particle.Speed = NumberRange.new(5, 10)
-            particle.Parent = hrp
-            game.StarterGui:SetCore("SendNotification", {
-                Title = "Hot Spray",
-                Text = "تم تفعيل رشاش الماء الساخن (18+)!",
-                Duration = 4
-            })
-            task.delay(8, function()
-                particle.Enabled = false
-                task.wait(1)
-                particle:Destroy()
-            end)
-        elseif name == "Jerk Mode" then
-            local plr = Players.LocalPlayer
-            local char = plr.Character or plr.CharacterAdded:Wait()
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                for i = 1, 10 do
-                    hum.WalkSpeed = 50
-                    wait(0.2)
-                    hum.WalkSpeed = 10
-                    wait(0.2)
+    -- حقل الإدخال
+    local inputBox = Instance.new("TextBox", page)
+    inputBox.Size = UDim2.new(0.6, 0, 0, 35)
+    inputBox.Position = UDim2.new(0.05, 0, 0.12, 0)
+    inputBox.PlaceholderText = "اسم اللاعب هنا"
+    inputBox.ClearTextOnFocus = false
+    inputBox.Font = Enum.Font.GothamBold
+    inputBox.TextSize = 18
+    inputBox.TextColor3 = Color3.new(0, 0, 0)
+    addUICorner(inputBox, 14)
+
+    -- زر التنفيذ
+    local executeBtn = Instance.new("TextButton", page)
+    executeBtn.Size = UDim2.new(0.3, 0, 0, 35)
+    executeBtn.Position = UDim2.new(0.7, 0, 0.12, 0)
+    executeBtn.BackgroundColor3 = Color3.fromRGB(200, 20, 20)
+    executeBtn.Text = "Execute"
+    executeBtn.Font = Enum.Font.GothamBold
+    executeBtn.TextSize = 20
+    executeBtn.TextColor3 = Color3.new(1, 1, 1)
+    addUICorner(executeBtn, 14)
+
+    -- مناطق عرض الحالة
+    local statusLabel = Instance.new("TextLabel", page)
+    statusLabel.Size = UDim2.new(0.95, 0, 0, 35)
+    statusLabel.Position = UDim2.new(0.025, 0, 0.18, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.TextColor3 = Color3.new(1, 1, 1)
+    statusLabel.Font = Enum.Font.GothamBold
+    statusLabel.TextSize = 18
+    statusLabel.Text = "Status: Ready"
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+    -- تنفيذ حركات Face Bang على اللاعب المحدد
+    local function faceBang(targetPlayer)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            statusLabel.Text = "Status: اللاعب غير متصل أو لم يتم العثور على الشخصية"
+            return
+        end
+        local hrp = targetPlayer.Character.HumanoidRootPart
+        local originalCFrame = hrp.CFrame
+
+        statusLabel.Text = "Status: بدء Face Bang على " .. targetPlayer.Name
+
+        -- حركة بسيطة متكررة للأمام والخلف
+        for i = 1, 10 do
+            hrp.CFrame = originalCFrame * CFrame.new(0, 0, -1)
+            task.wait(0.15)
+            hrp.CFrame = originalCFrame * CFrame.new(0, 0, 1)
+            task.wait(0.15)
+        end
+        hrp.CFrame = originalCFrame
+
+        statusLabel.Text = "Status: انتهى Face Bang على " .. targetPlayer.Name
+    end
+
+    -- تنفيذ الأمر عند الضغط على الزر
+    executeBtn.MouseButton1Click:Connect(function()
+        local targetName = inputBox.Text:match("%S+")
+        if not targetName or targetName == "" then
+            statusLabel.Text = "Status: يرجى إدخال اسم لاعب صالح"
+            return
+        end
+
+        local targetPlayer = Players:FindFirstChild(targetName)
+        if not targetPlayer then
+            -- البحث بحساسية أقل (مثل الاسم الجزئي)
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Name:lower():find(targetName:lower()) then
+                    targetPlayer = plr
+                    break
                 end
-                hum.WalkSpeed = 16
-                game.StarterGui:SetCore("SendNotification", {
-                    Title = "Jerk Mode",
-                    Text = "تم تفعيل وضع Jerk 18+ بنجاح!",
-                    Duration = 4
-                })
             end
         end
-    end
 
-    -- Buttons List
-    local scriptNames = {
-        "Bang Bang V3",
-        "Hot Spray",
-        "Jerk Mode"
-    }
-
-    for i, scriptName in ipairs(scriptNames) do
-        local btn = Instance.new("TextButton", page)
-        btn.Size = UDim2.new(0.8, 0, 0, 50)
-        btn.Position = UDim2.new(0.1, 0, 0.15 + (i-1)*0.12, 0)
-        btn.BackgroundColor3 = Color3.fromRGB(180, 20, 180)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 22
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.Text = scriptName
-        btn.AutoButtonColor = false
-        addUICorner(btn, 15)
-
-        btn.MouseEnter:Connect(function()
-            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(230, 50, 230), 0.25)
-        end)
-        btn.MouseLeave:Connect(function()
-            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(180, 20, 180), 0.25)
-        end)
-
-        btn.MouseButton1Click:Connect(function()
-            runHotScript(scriptName)
-        end)
-    end
+        if targetPlayer then
+            faceBang(targetPlayer)
+        else
+            statusLabel.Text = "Status: لم يتم العثور على اللاعب"
+        end
+    end)
 end
 
--- Close & Minimize logic
+-- ======== أزرار التحكم ========
 closeBtn.MouseButton1Click:Connect(function()
     EliteMenu:Destroy()
 end)
@@ -504,19 +437,54 @@ local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        frame:TweenSize(UDim2.new(0, 460, 0, 45), Enum.EasingDirection.In, Enum.EasingStyle.Quint, 0.5)
-        pageBar.Visible = false
-        pagesContainer.Visible = false
+        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 60)}):Play()
+        for _, child in pairs(frame:GetChildren()) do
+            if child ~= header then
+                child.Visible = false
+            end
+        end
     else
-        frame:TweenSize(UDim2.new(0, 460, 0, 520), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.5)
-        pageBar.Visible = true
-        pagesContainer.Visible = true
+        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 550)}):Play()
+        for _, child in pairs(frame:GetChildren()) do
+            child.Visible = true
+        end
     end
 end)
 
--- Ready message
-game.StarterGui:SetCore("SendNotification", {
-    Title = "Elite V5 PRO",
-    Text = "تم تحميل القائمة بنجاح! استمتع بالسكربتات.",
-    Duration = 5
-})
+-- إشعار ترحيبي
+local function showNotification(text)
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "NotifGui"
+    notifGui.Parent = game.CoreGui
+
+    local frameNotif = Instance.new("Frame", notifGui)
+    frameNotif.Size = UDim2.new(0, 300, 0, 50)
+    frameNotif.Position = UDim2.new(0.5, -150, 0.9, 0)
+    frameNotif.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
+    frameNotif.BorderSizePixel = 0
+    addUICorner(frameNotif, 20)
+
+    local labelNotif = Instance.new("TextLabel", frameNotif)
+    labelNotif.Size = UDim2.new(1, -20, 1, 0)
+    labelNotif.Position = UDim2.new(0, 10, 0, 0)
+    labelNotif.BackgroundTransparency = 1
+    labelNotif.Text = text
+    labelNotif.TextColor3 = Color3.new(1, 1, 1)
+    labelNotif.Font = Enum.Font.GothamBold
+    labelNotif.TextSize = 20
+    labelNotif.TextXAlignment = Enum.TextXAlignment.Left
+
+    TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+
+    task.delay(4, function()
+        TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        task.wait(0.5)
+        notifGui:Destroy()
+    end)
+end
+
+showNotification("مرحبا بك في Elite V5 PRO")
+
+-- النهاية
