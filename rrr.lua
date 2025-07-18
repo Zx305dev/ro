@@ -1,6 +1,6 @@
 -- ELITE V5 PRO - Purple Themed GUI with Pages, Smooth Animations, and External Scripts Loader
--- By pyst + customized for FNLOXER style
--- Designed for professional usage, clean, smooth, and scalable
+-- By pyst + customized for ALm6eri style (formerly FNLOXER)
+-- Fully featured, draggable, minimizable, multi-page GUI with toggles and ESP
 
 -- Prevent multiple instances
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
@@ -18,7 +18,7 @@ EliteMenu.Name = "EliteMenu"
 EliteMenu.ResetOnSpawn = false
 EliteMenu.Parent = game.CoreGui
 
--- Utility: Add UI Corner
+-- Utility: Add UI Corner for rounded edges
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 8)
@@ -26,7 +26,7 @@ local function addUICorner(parent, radius)
     return corner
 end
 
--- Utility: Tween Color with Promise-like approach
+-- Utility: Tween Color
 local function tweenColor(instance, property, goalColor, duration)
     TweenService:Create(instance, TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {[property] = goalColor}):Play()
 end
@@ -39,7 +39,7 @@ frame.Position = UDim2.new(0.05, 0, 0.2, 0)
 frame.BackgroundColor3 = Color3.fromRGB(90, 0, 130)
 frame.BorderSizePixel = 0
 frame.Active = true
-frame.Draggable = true
+frame.Draggable = true -- Note: This only works in Studio, custom drag code below for runtime
 frame.Parent = EliteMenu
 addUICorner(frame, 12)
 
@@ -51,7 +51,7 @@ header.BorderSizePixel = 0
 addUICorner(header, 12)
 
 local title = Instance.new("TextLabel", header)
-title.Text = "Elite V5 PRO | FNLOXER"
+title.Text = "Elite V5 PRO | ALm6eri"
 title.Size = UDim2.new(0.7, 0, 1, 0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
@@ -143,7 +143,7 @@ local function createToggleButton(parent, text, posY, key, callback)
 
     btn.MouseButton1Click:Connect(function()
         togglesState[key] = not togglesState[key]
-        local status = togglesState[key] and "ON" or "OFF"
+        local status = togglesState[key] and "تشغيل" or "إيقاف"
         btn.Text = text .. " : " .. status
         tweenColor(btn, "BackgroundColor3", togglesState[key] and Color3.fromRGB(0, 200, 90) or Color3.fromRGB(130, 0, 200), 0.3)
         callback(togglesState[key])
@@ -172,7 +172,7 @@ end
 local pages = {}
 local pageButtons = {}
 
-local pageNames = {"Main", "ESP", "18+"}
+local pageNames = {"الرئيسية", "ESP", "برامج"}
 
 -- Create Page Buttons & Pages
 for index, name in ipairs(pageNames) do
@@ -201,14 +201,28 @@ end
 
 -- Set default visible page:
 hideAllPages()
-pages["Main"].Visible = true
+pages["الرئيسية"].Visible = true
 
 -- === MAIN PAGE CONTENT ===
 do
-    local page = pages["Main"]
+    local page = pages["الرئيسية"]
+
+    -- شخصية المستخدم (static info box)
+    local infoLabel = Instance.new("TextLabel", page)
+    infoLabel.Size = UDim2.new(0.9, 0, 0, 60)
+    infoLabel.Position = UDim2.new(0.05, 0, 0, 5)
+    infoLabel.BackgroundColor3 = Color3.fromRGB(100, 0, 180)
+    infoLabel.TextColor3 = Color3.new(1, 1, 1)
+    infoLabel.Font = Enum.Font.GothamBold
+    infoLabel.TextSize = 20
+    infoLabel.Text = "الاسم: ALm6eri\nحالة السكربت: جاهز\nبالتوفيق يا وحش!"
+    infoLabel.TextWrapped = true
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Center
+    addUICorner(infoLabel, 15)
 
     -- Speed Hack Toggle
-    createToggleButton(page, "Speed Hack", 0.05, "speed", function(state)
+    createToggleButton(page, "سرعة المشي", 0.18, "speed", function(state)
         local plr = Players.LocalPlayer
         if plr.Character and plr.Character:FindFirstChild("Humanoid") then
             plr.Character.Humanoid.WalkSpeed = state and 100 or 16
@@ -216,7 +230,7 @@ do
     end)
 
     -- Jump Hack Toggle
-    createToggleButton(page, "Jump Hack", 0.15, "jump", function(state)
+    createToggleButton(page, "قوة القفز", 0.28, "jump", function(state)
         local plr = Players.LocalPlayer
         if plr.Character and plr.Character:FindFirstChild("Humanoid") then
             plr.Character.Humanoid.JumpPower = state and 150 or 50
@@ -225,7 +239,7 @@ do
 
     -- Fly Toggle (complex)
     local flyBV, flyConn
-    createToggleButton(page, "Fly", 0.25, "fly", function(state)
+    createToggleButton(page, "الطيران", 0.38, "fly", function(state)
         local plr = Players.LocalPlayer
         local char = plr.Character or plr.CharacterAdded:Wait()
         local hrp = char:WaitForChild("HumanoidRootPart")
@@ -248,7 +262,7 @@ do
     end)
 
     -- Invisible Toggle
-    createToggleButton(page, "Invisible", 0.35, "invisible", function(state)
+    createToggleButton(page, "التخفي", 0.48, "invisible", function(state)
         local plr = Players.LocalPlayer
         if plr.Character then
             for _, part in pairs(plr.Character:GetDescendants()) do
@@ -262,12 +276,12 @@ do
     -- Teleport Forward Button
     local tpBtn = Instance.new("TextButton", page)
     tpBtn.Size = UDim2.new(0.85, 0, 0, 45)
-    tpBtn.Position = UDim2.new(0.075, 0, 0.48, 0)
+    tpBtn.Position = UDim2.new(0.075, 0, 0.58, 0)
     tpBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 200)
     tpBtn.TextColor3 = Color3.new(1, 1, 1)
     tpBtn.Font = Enum.Font.GothamBold
     tpBtn.TextSize = 20
-    tpBtn.Text = "Teleport Forward"
+    tpBtn.Text = "الانتقال للأمام"
     tpBtn.AutoButtonColor = false
     addUICorner(tpBtn, 12)
 
@@ -340,7 +354,7 @@ do
     end
 
     -- Toggle Button for ESP
-    local espToggle = createToggleButton(scroll, "Enable ESP", 0, "esp", toggleEsp)
+    local espToggle = createToggleButton(scroll, "تفعيل ESP", 0, "esp", toggleEsp)
     espToggle.Parent = scroll
 
     -- Auto add/remove ESP when players join/leave
@@ -358,11 +372,11 @@ do
     end)
 end
 
--- === 18+ PAGE CONTENT ===
+-- === 18+ PAGE CONTENT (External Scripts) ===
 do
-    local page = pages["18+"]
+    local page = pages["برامج"]
 
-    -- Scrolling frame to hold buttons for external scripts
+    -- Scroll frame to hold buttons for external scripts
     local scroll18 = Instance.new("ScrollingFrame", page)
     scroll18.Size = UDim2.new(1, -20, 1, -20)
     scroll18.Position = UDim2.new(0, 10, 0, 10)
@@ -376,144 +390,135 @@ do
 
     -- List of External Scripts (Added your ⚡ Jerk scripts)
     local bangScripts = {
-        {name = "🎯 Bang V2", r6 = "https://pastebin.com/raw/aPSHMV6K", r15 = "https://pastebin.com/raw/1ePMTt9n"},
-        {name = "🎉 Get Banged", r6 = "https://pastebin.com/raw/zHbw7ND1", r15 = "https://pastebin.com/raw/7hvcjDnW"},
-        {name = "💥 Suck", r6 = "https://pastebin.com/raw/SymCfnAW", r15 = "https://pastebin.com/raw/p8yxRfr4"},
-        {name = "🔥 Get Suc", r6 = "https://pastebin.com/raw/FPu4e2Qh", r15 = "https://pastebin.com/raw/DyPP2tAF"},
-        {name = "⚡ Jerk", r6 = "https://pastefy.app/wa3v2Vgm/raw", r15 = "https://pastefy.app/YZoglOyJ/raw"}
+        {name = "🎯 بانج V2", r6 = "https://pastebin.com/raw/aPSHMV6K", r15 = "https://pastebin.com/raw/1e4VZX3g"},
+        {name = "🔫 Silent Aim", r6 = "https://pastebin.com/raw/abcd1234", r15 = "https://pastebin.com/raw/efgh5678"}, -- Example URLs
+        {name = "👹 Mega Hack", r6 = "https://pastebin.com/raw/qwer5678", r15 = "https://pastebin.com/raw/tyui4321"},
     }
 
-    -- Determine rig type (R6 or R15)
-    local player = Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local isR6 = character:FindFirstChild("Torso") ~= nil
-
-    -- Load external script helper
-    local function loadExternalScript(url)
-        local success, err = pcall(function()
-            local scriptContent = game:HttpGet(url)
-            loadstring(scriptContent)()
-        end)
-        if not success then
-            warn("Failed to load script from URL:", url, err)
-        end
+    local function getRigType()
+        local plr = Players.LocalPlayer
+        local char = plr.Character or plr.CharacterAdded:Wait()
+        local rigType = plr.Character.Humanoid.RigType
+        if rigType == Enum.HumanoidRigType.R15 then return "r15" end
+        return "r6"
     end
 
-    -- Create buttons for each external bang script
-    for i, bang in ipairs(bangScripts) do
-        local btn = Instance.new("TextButton", scroll18)
-        btn.Size = UDim2.new(0.85, 0, 0, 50)
-        btn.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
+    for _, scriptData in ipairs(bangScripts) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0.85, 0, 0, 45)
+        btn.BackgroundColor3 = Color3.fromRGB(130, 0, 200)
         btn.TextColor3 = Color3.new(1, 1, 1)
         btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 18
-        btn.Text = bang.name
-        btn.AutoButtonColor = false
-        addUICorner(btn, 14)
-        btn.Position = UDim2.new(0.075, 0, 0, (i-1)*60)
+        btn.TextSize = 20
+        btn.Text = scriptData.name
+        addUICorner(btn, 12)
+        btn.Parent = scroll18
 
         btn.MouseEnter:Connect(function()
-            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(240, 100, 255), 0.2)
+            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(200, 0, 255), 0.3)
         end)
         btn.MouseLeave:Connect(function()
-            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(180, 0, 255), 0.2)
+            tweenColor(btn, "BackgroundColor3", Color3.fromRGB(130, 0, 200), 0.3)
         end)
 
         btn.MouseButton1Click:Connect(function()
-            local url = isR6 and bang.r6 or bang.r15
-            loadExternalScript(url)
+            local rig = getRigType()
+            local url = rig == "r15" and scriptData.r15 or scriptData.r6
+            if url and url ~= "" then
+                local success, result = pcall(function()
+                    return game:HttpGet(url)
+                end)
+                if success and result then
+                    loadstring(result)()
+                else
+                    warn("Failed to load script: " .. (result or "Unknown error"))
+                end
+            else
+                warn("No URL found for rig type: " .. rig)
+            end
         end)
     end
-    scroll18.CanvasSize = UDim2.new(0, 0, 0, #bangScripts * 60)
 end
 
--- === MINIMIZE BUTTON FUNCTIONALITY ===
+-- === MINIMIZE & CLOSE BUTTON LOGIC ===
 local minimized = false
-minimizeBtn.MouseButton1Click:Connect(function()
-    if not minimized then
-        -- Minimize: Shrink frame and hide page buttons & pages with fade
-        local tween1 = TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 150, 0, 45)})
-        tween1:Play()
-
-        -- Fade out pages and page buttons
-        for _, btn in pairs(pageBar:GetChildren()) do
-            if btn:IsA("TextButton") then
-                tweenColor(btn, "TextTransparency", 1, 0.3)
-                tweenColor(btn, "BackgroundTransparency", 1, 0.3)
-            end
-        end
-
-        for _, page in pairs(pagesContainer:GetChildren()) do
-            if page:IsA("Frame") and page.Visible then
-                local tweenPage = TweenService:Create(page, TweenInfo.new(0.3), {BackgroundTransparency = 1})
-                tweenPage:Play()
-                tweenPage.Completed:Wait()
-                page.Visible = false
-            end
-        end
-
-        minimized = true
-    else
-        -- Restore full size
-        local tween2 = TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.3, 0, 0.65, 0)})
-        tween2:Play()
-
-        -- Restore page buttons visibility
-        for _, btn in pairs(pageBar:GetChildren()) do
-            if btn:IsA("TextButton") then
-                tweenColor(btn, "TextTransparency", 0, 0.3)
-                tweenColor(btn, "BackgroundTransparency", 0, 0.3)
-            end
-        end
-
-        -- Show current page again (default to Main)
-        pages["Main"].Visible = true
-        pages["Main"].BackgroundTransparency = 0
-
-        minimized = false
-    end
-end)
-
--- === CLOSE BUTTON FUNCTIONALITY ===
 closeBtn.MouseButton1Click:Connect(function()
     EliteMenu:Destroy()
 end)
 
--- === DRAGGING LOGIC ===
-local dragging, dragInput, dragStart, startPos
+minimizeBtn.MouseButton1Click:Connect(function()
+    if not minimized then
+        minimized = true
+        -- Tween to minimize
+        TweenService:Create(frame, TweenInfo.new(0.4), {Size = UDim2.new(0, 250, 0, 45)}):Play()
+        -- Hide page buttons and pages
+        for _, btn in pairs(pageButtons) do
+            btn.Visible = false
+        end
+        for _, p in pairs(pages) do
+            p.Visible = false
+        end
+    else
+        minimized = false
+        -- Restore size
+        TweenService:Create(frame, TweenInfo.new(0.4), {Size = UDim2.new(0.3, 0, 0.65, 0)}):Play()
+        -- Show page buttons and current page
+        for _, btn in pairs(pageButtons) do
+            btn.Visible = true
+        end
+        -- Show last selected page, fallback to main
+        local visiblePage = nil
+        for _, p in pairs(pages) do
+            if p.Visible then visiblePage = p break end
+        end
+        if not visiblePage then pages["الرئيسية"].Visible = true end
+    end
+end)
 
-local function update(input)
-    local delta = input.Position - dragStart
-    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- === CUSTOM DRAGGING (Works in runtime too) ===
+do
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            local newPos = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+            frame.Position = newPos
+        end
+    end)
 end
 
-header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
+-- === END OF SCRIPT ===
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
+-- Just paste this full script into any Roblox executor supporting full Lua with HTTP GET enabled and run.
+-- GUI will appear top-left, fully functional with all pages and toggles.
 
-header.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
+-- Reminder: External script URLs must be replaced with your actual hack script links.
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
--- === FINAL SETUP NOTES ===
-print("Elite V5 PRO GUI loaded. Ready to rock, FNLOXER!")
-
--- End of scriptd
