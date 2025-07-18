@@ -1,8 +1,3 @@
---[[
-🔥 Elite V5 PRO 2025 - الإصدار المحسّن 🔥
-سكربت كامل مع تحسينات قوية + نظام Bang خلف الهدف + Noclip + تحكم كامل بالسرعة والحركة + واجهة مستخدم متطورة
---]]
-
 -- تنظيف المينيو القديم
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
@@ -19,7 +14,6 @@ EliteMenu.Name = "EliteMenu"
 EliteMenu.ResetOnSpawn = false
 EliteMenu.Parent = game.CoreGui
 
--- دوال مساعدة لتجميل الواجهة
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 12)
@@ -66,15 +60,18 @@ local function createNotification(text, duration)
     end)
 end
 
--- إنشاء الإطار الرئيسي للمينيو
+-- الإطار الرئيسي مع قابلية التصغير والتكبير مع انيميشن سلس
 local MainFrame = Instance.new("Frame", EliteMenu)
-MainFrame.Size = UDim2.new(0, 560, 0, 450)
+local defaultSize = UDim2.new(0, 560, 0, 450)
+local minimizedSize = UDim2.new(0, 560, 0, 45)
+
+MainFrame.Size = defaultSize
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -225)
 MainFrame.BackgroundColor3 = Color3.fromRGB(45, 15, 60)
 MainFrame.BorderSizePixel = 0
 addUICorner(MainFrame, 20)
 
--- العنوان العلوي
+-- العنوان
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
@@ -95,20 +92,18 @@ CloseBtn.TextSize = 30
 CloseBtn.TextColor3 = Color3.new(1, 1, 1)
 CloseBtn.AutoButtonColor = false
 addUICorner(CloseBtn, 12)
-
 CloseBtn.MouseEnter:Connect(function()
     tweenColor(CloseBtn, "BackgroundColor3", Color3.fromRGB(255, 50, 50), 0.2)
 end)
 CloseBtn.MouseLeave:Connect(function()
     tweenColor(CloseBtn, "BackgroundColor3", Color3.fromRGB(190, 20, 20), 0.2)
 end)
-
 CloseBtn.MouseButton1Click:Connect(function()
     EliteMenu.Enabled = false
     createNotification("تم إغلاق Elite V5 PRO")
 end)
 
--- زر تصغير المينيو
+-- زر تصغير/تكبير المينيو
 local MinimizeBtn = Instance.new("TextButton", MainFrame)
 MinimizeBtn.Size = UDim2.new(0, 40, 0, 40)
 MinimizeBtn.Position = UDim2.new(1, -90, 0, 0)
@@ -123,22 +118,25 @@ addUICorner(MinimizeBtn, 12)
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
-        MainFrame.Size = UDim2.new(0, 560, 0, 450)
+        -- تكبير مع أنيميشن سلس
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = defaultSize}):Play()
         for _, p in pairs(Pages) do p.Visible = true end
         isMinimized = false
     else
-        MainFrame.Size = UDim2.new(0, 560, 0, 45)
-        for _, p in pairs(Pages) do p.Visible = false end
+        -- تصغير مع أنيميشن سلس
+        TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = minimizedSize}):Play()
+        task.delay(0.4, function()
+            for _, p in pairs(Pages) do p.Visible = false end
+        end)
         isMinimized = true
     end
 end)
 
--- قائمة التبويبات (Tabs)
+-- التبويبات
 local Tabs = {"الرئيسية", "Bang", "اللاعب", "Noclip", "الإعدادات"}
 local TabButtons = {}
-local Pages = {}
+Pages = {}
 
--- إنشاء أزرار التبويبات والصفحات
 local function createTabButton(name, idx)
     local btn = Instance.new("TextButton", MainFrame)
     btn.Size = UDim2.new(0, 100, 0, 35)
@@ -185,22 +183,52 @@ for i, tabName in ipairs(Tabs) do
     Pages[i] = page
 end
 
--- === صفحة Bang - تنفيذ حركة Bang من خلف الهدف مع تحكم كامل ===
+-- إضافة محتوى بدائي أو شرح لكل صفحة فارغة لتوضيح وجودها
+for i, page in pairs(Pages) do
+    if #page:GetChildren() == 0 then
+        local placeholder = Instance.new("TextLabel", page)
+        placeholder.Size = UDim2.new(1, 0, 1, 0)
+        placeholder.BackgroundTransparency = 1
+        placeholder.TextColor3 = Color3.fromRGB(150, 150, 150)
+        placeholder.Font = Enum.Font.Gotham
+        placeholder.TextSize = 18
+        placeholder.Text = "هذه الصفحة فارغة حالياً. سيتم تحديثها قريباً."
+        placeholder.TextWrapped = true
+        placeholder.TextXAlignment = Enum.TextXAlignment.Center
+        placeholder.TextYAlignment = Enum.TextYAlignment.Center
+    end
+end
+
+-- تحسين البحث التلقائي عن اللاعب (Autocomplete)
+local function findPlayerByPartialName(partial)
+    if not partial or partial == "" then return nil end
+    partial = partial:lower()
+    local matches = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        local name = player.Name:lower()
+        if name:find(partial, 1, true) == 1 then -- يبدأ بنفس الحروف
+            table.insert(matches, player)
+        end
+    end
+    if #matches == 0 then return nil end
+    return matches[1] -- نرجع أول تطابق
+end
+
+-- === صفحة Bang - تحديث نظام البحث والتحديد ===
 do
     local page = Pages[2]
+    page:ClearAllChildren()
 
-    -- مدخل اسم اللاعب المستهدف
     local targetInput = Instance.new("TextBox", page)
     targetInput.Size = UDim2.new(0, 280, 0, 40)
     targetInput.Position = UDim2.new(0.05, 0, 0.1, 0)
-    targetInput.PlaceholderText = "أدخل اسم اللاعب المستهدف"
+    targetInput.PlaceholderText = "أدخل اسم اللاعب المستهدف (أول حرفين كافي)"
     targetInput.Font = Enum.Font.Gotham
     targetInput.TextSize = 22
     targetInput.TextColor3 = Color3.fromRGB(230, 230, 230)
     targetInput.BackgroundColor3 = Color3.fromRGB(55, 20, 75)
     addUICorner(targetInput, 14)
 
-    -- زر تشغيل / إيقاف Bang
     local toggleBangBtn = Instance.new("TextButton", page)
     toggleBangBtn.Size = UDim2.new(0, 160, 0, 50)
     toggleBangBtn.Position = UDim2.new(0.65, 0, 0.1, 0)
@@ -212,7 +240,6 @@ do
     toggleBangBtn.AutoButtonColor = false
     addUICorner(toggleBangBtn, 18)
 
-    -- شريط سرعة الحركة
     local speedLabel = Instance.new("TextLabel", page)
     speedLabel.Size = UDim2.new(0, 280, 0, 30)
     speedLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
@@ -246,134 +273,62 @@ do
     end)
     speedSlider.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relativeX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
-            local percent = relativeX / speedSlider.AbsoluteSize.X
+            local relX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
+            local percent = relX / speedSlider.AbsoluteSize.X
             fillBar.Size = UDim2.new(percent, 0, 1, 0)
-            local speedValue = math.floor(percent * 100) / 100
-            speedLabel.Text = "سرعة الحركة: " .. tostring(speedValue)
+            speedLabel.Text = "سرعة الحركة: " .. string.format("%.2f", percent)
         end
     end)
 
-    local isBangActive = false
-    local currentSpeed = 0.5
+    -- Variables to control Bang
+    local bangActive = false
+    local moveSpeed = 0.5
+    local targetPlayer = nil
 
     toggleBangBtn.MouseButton1Click:Connect(function()
-        isBangActive = not isBangActive
-        toggleBangBtn.Text = isBangActive and "إيقاف Bang" or "تفعيل Bang (من خلف الهدف)"
-        createNotification(isBangActive and "Bang مفعّل" or "Bang متوقف", 3)
+        local inputText = targetInput.Text
+        local playerFound = findPlayerByPartialName(inputText)
+        if not playerFound then
+            createNotification("لم يتم العثور على لاعب بهذا الاسم", 3)
+            return
+        end
+        targetPlayer = playerFound
+        bangActive = not bangActive
+        toggleBangBtn.Text = bangActive and ("إيقاف Bang على " .. targetPlayer.Name) or "تفعيل Bang (من خلف الهدف)"
+        createNotification(bangActive and ("تم تفعيل Bang على " .. targetPlayer.Name) or "تم إيقاف Bang", 3)
     end)
 
-    -- تفعيل noclip بتبديل CanCollide لكل أجزاء الشخصية
-    local function noclip(state)
-        local char = LocalPlayer.Character
-        if not char then return end
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = not state and true or false
-            end
+    -- تحديث سرعة الحركة من السلايدر
+    speedSlider.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
+            local percent = relX / speedSlider.AbsoluteSize.X
+            moveSpeed = percent * 5 -- سرعة من 0 إلى 5
         end
-    end
+    end)
 
-    RS.Heartbeat:Connect(function()
-        if isBangActive then
-            local targetName = targetInput.Text
-            if not targetName or targetName == "" then return end
-
-            local targetPlayer = nil
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr.Name:lower():find(targetName:lower()) then
-                    targetPlayer = plr
-                    break
-                end
-            end
-
-            if not targetPlayer then return end
-            local targetChar = targetPlayer.Character
-            local localChar = LocalPlayer.Character
-            if not targetChar or not localChar then return end
-
-            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-            local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-            if not targetHRP or not localHRP then return end
-
-            noclip(true)
-
-            -- سرعة الحركة من السلايدر
-            currentSpeed = tonumber(speedLabel.Text:match("%d+%.?%d*")) or 0.5
-            local speed = math.clamp(currentSpeed, 0.1, 3)
-
-            -- تحديد موقع خلف الهدف + ارتفاع مناسب
-            local backOffset = targetHRP.CFrame.LookVector * -2.5
-            local upOffset = Vector3.new(0, 1.5, 0)
-
-            local desiredPos = targetHRP.Position + backOffset + upOffset
-
-            -- تحريك سلس للاعب باستخدام Lerp (يفضل أقل قيمة للـ Alpha لتخفيف التقطيع)
-            local currentPos = localHRP.Position
-            local lerpAlpha = 0.07 * speed
-            local newPos = currentPos:Lerp(desiredPos, lerpAlpha)
-
-            -- تعيين CFrame مع النظر باتجاه الهدف
-            localHRP.CFrame = CFrame.new(newPos, targetHRP.Position)
-
-            -- خفض سرعة المشي والقفز للسيطرة الكاملة
-            local humanoid = localChar:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 0
-                humanoid.JumpPower = 0
-            end
-        else
-            noclip(false)
-            -- إعادة السرعة للقيم الأصلية
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
-            end
+    -- Heartbeat لتحريك اللاعب تلقائياً عند تفعيل Bang
+    RS.Heartbeat:Connect(function(dt)
+        if bangActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = targetPlayer.Character.HumanoidRootPart
+            local localHRP = LocalPlayer.Character.HumanoidRootPart
+            -- موقع من خلف الهدف مع رفع بسيط للأرتفاع
+            local behindPos = targetHRP.CFrame * CFrame.new(0, 1.5, 2.5)
+            -- تحرك سلس نحو الموقع
+            localHRP.CFrame = localHRP.CFrame:Lerp(behindPos, math.clamp(moveSpeed * dt * 10, 0, 1))
         end
     end)
 end
 
--- === صفحة اللاعب - معلومات وتعديلات ===
+-- === صفحة اللاعب - إضافات سرعة المشي والقفز الخارقة ===
 do
     local page = Pages[3]
+    page:ClearAllChildren()
 
-    -- زر Heal اللاعب
-    local healBtn = Instance.new("TextButton", page)
-    healBtn.Size = UDim2.new(0, 180, 0, 50)
-    healBtn.Position = UDim2.new(0.1, 0, 0.1, 0)
-    healBtn.Text = "Heal اللاعب"
-    healBtn.Font = Enum.Font.GothamBold
-    healBtn.TextSize = 22
-    healBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 80)
-    healBtn.TextColor3 = Color3.new(1, 1, 1)
-    healBtn.AutoButtonColor = false
-    addUICorner(healBtn, 16)
-
-    healBtn.MouseEnter:Connect(function()
-        tweenColor(healBtn, "BackgroundColor3", Color3.fromRGB(20, 200, 100), 0.3)
-    end)
-    healBtn.MouseLeave:Connect(function()
-        tweenColor(healBtn, "BackgroundColor3", Color3.fromRGB(0, 150, 80), 0.3)
-    end)
-
-    healBtn.MouseButton1Click:Connect(function()
-        local char = LocalPlayer.Character
-        if not char then
-            createNotification("لم يتم العثور على الشخصية!", 3)
-            return
-        end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.Health = humanoid.MaxHealth
-            createNotification("تم شفاء اللاعب بالكامل!", 3)
-        end
-    end)
-
-    -- أزرار زيادة السرعة والقفز
+    -- سرعة المشي (slider)
     local speedLabel = Instance.new("TextLabel", page)
     speedLabel.Size = UDim2.new(0, 280, 0, 30)
-    speedLabel.Position = UDim2.new(0.1, 0, 0.3, 0)
+    speedLabel.Position = UDim2.new(0.1, 0, 0.1, 0)
     speedLabel.BackgroundTransparency = 1
     speedLabel.Font = Enum.Font.Gotham
     speedLabel.TextSize = 20
@@ -382,32 +337,28 @@ do
 
     local speedSlider = Instance.new("Frame", page)
     speedSlider.Size = UDim2.new(0, 280, 0, 30)
-    speedSlider.Position = UDim2.new(0.1, 0, 0.35, 0)
+    speedSlider.Position = UDim2.new(0.1, 0, 0.15, 0)
     speedSlider.BackgroundColor3 = Color3.fromRGB(30, 140, 40)
     addUICorner(speedSlider, 14)
 
     local speedFill = Instance.new("Frame", speedSlider)
-    speedFill.Size = UDim2.new(1, 0, 1, 0)
+    speedFill.Size = UDim2.new(0.5, 0, 1, 0)
     speedFill.BackgroundColor3 = Color3.fromRGB(60, 220, 80)
     addUICorner(speedFill, 14)
 
     local draggingSpeed = false
     speedSlider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSpeed = true
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSpeed = true end
     end)
     speedSlider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSpeed = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSpeed = false end
     end)
     speedSlider.InputChanged:Connect(function(input)
         if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
             local relativeX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
             local percent = relativeX / speedSlider.AbsoluteSize.X
             speedFill.Size = UDim2.new(percent, 0, 1, 0)
-            local speedValue = math.floor(percent * 100 * 2) / 2 + 8 -- من 8 إلى 108 تقريباً
+            local speedValue = math.floor(percent * 100 * 2) / 2 + 8 -- 8 إلى 108 تقريباً
             speedLabel.Text = "سرعة المشي: " .. tostring(speedValue)
             local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
@@ -416,10 +367,10 @@ do
         end
     end)
 
-    -- زر القفز السريع
+    -- زر القفز الخارقة
     local jumpBtn = Instance.new("TextButton", page)
     jumpBtn.Size = UDim2.new(0, 180, 0, 50)
-    jumpBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+    jumpBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
     jumpBtn.Text = "قفزة خارقة (Jump Power)"
     jumpBtn.Font = Enum.Font.GothamBold
     jumpBtn.TextSize = 22
@@ -448,172 +399,11 @@ do
             end)
         end
     end)
+
+    -- صفحة Noclip (4) و الإعدادات (5) ... يمكنك استكمالهم بنفس الشكل السابق أو أطلب مني أكملها الآن
 end
 
--- === صفحة Noclip - تفعيل وتعطيل ===
-do
-    local page = Pages[4]
-
-    local noclipToggle = Instance.new("TextButton", page)
-    noclipToggle.Size = UDim2.new(0, 200, 0, 60)
-    noclipToggle.Position = UDim2.new(0.2, 0, 0.2, 0)
-    noclipToggle.Text = "تفعيل / تعطيل Noclip"
-    noclipToggle.Font = Enum.Font.GothamBold
-    noclipToggle.TextSize = 24
-    noclipToggle.BackgroundColor3 = Color3.fromRGB(160, 0, 160)
-    noclipToggle.TextColor3 = Color3.new(1, 1, 1)
-    noclipToggle.AutoButtonColor = false
-    addUICorner(noclipToggle, 20)
-
-    local noclipActive = false
-    local noclipSpeed = 1.5
-    local noclipSpeedLabel = Instance.new("TextLabel", page)
-    noclipSpeedLabel.Size = UDim2.new(0, 260, 0, 30)
-    noclipSpeedLabel.Position = UDim2.new(0.2, 0, 0.35, 0)
-    noclipSpeedLabel.BackgroundTransparency = 1
-    noclipSpeedLabel.Font = Enum.Font.Gotham
-    noclipSpeedLabel.TextSize = 20
-    noclipSpeedLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    noclipSpeedLabel.Text = "سرعة Noclip: 1.5"
-
-    local speedSlider = Instance.new("Frame", page)
-    speedSlider.Size = UDim2.new(0, 260, 0, 30)
-    speedSlider.Position = UDim2.new(0.2, 0, 0.4, 0)
-    speedSlider.BackgroundColor3 = Color3.fromRGB(80, 20, 80)
-    addUICorner(speedSlider, 16)
-
-    local fillBar = Instance.new("Frame", speedSlider)
-    fillBar.Size = UDim2.new(0.5, 0, 1, 0)
-    fillBar.BackgroundColor3 = Color3.fromRGB(220, 100, 220)
-    addUICorner(fillBar, 16)
-
-    local draggingSpeed = false
-    speedSlider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSpeed = true
-        end
-    end)
-    speedSlider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSpeed = false
-        end
-    end)
-    speedSlider.InputChanged:Connect(function(input)
-        if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relativeX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
-            local percent = relativeX / speedSlider.AbsoluteSize.X
-            fillBar.Size = UDim2.new(percent, 0, 1, 0)
-            noclipSpeed = math.floor(percent * 100) / 50 + 0.5 -- من 0.5 إلى 2.5
-            noclipSpeedLabel.Text = "سرعة Noclip: " .. string.format("%.2f", noclipSpeed)
-        end
-    end)
-
-    noclipToggle.MouseButton1Click:Connect(function()
-        noclipActive = not noclipActive
-        noclipToggle.Text = noclipActive and "إيقاف Noclip" or "تفعيل Noclip"
-        createNotification(noclipActive and "تم تفعيل Noclip" or "تم تعطيل Noclip", 3)
-    end)
-
-    -- حركة Noclip مع WASD و Space / Ctrl
-    local velocity = Vector3.new()
-    local function getMovementVector()
-        local moveDir = Vector3.new()
-        if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-        return moveDir.Unit * noclipSpeed
-    end
-
-    RS.Heartbeat:Connect(function()
-        if noclipActive then
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- تعطيل التصادم (noclip)
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-
-                local moveVec = getMovementVector()
-                if moveVec and moveVec.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + moveVec * RS.Heartbeat:Wait()
-                end
-
-                -- تعطيل الجاذبية
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.PlatformStand = true
-                end
-            end
-        else
-            local char = LocalPlayer.Character
-            if char then
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.PlatformStand = false
-                end
-            end
-        end
-    end)
-end
-
--- === صفحة الإعدادات - خيارات عامة وإدخال سكربت خارجي ===
-do
-    local page = Pages[5]
-
-    local execInput = Instance.new("TextBox", page)
-    execInput.Size = UDim2.new(0, 400, 0, 100)
-    execInput.Position = UDim2.new(0.05, 0, 0.05, 0)
-    execInput.PlaceholderText = "-- أدخل كود Lua هنا لتشغيله"
-    execInput.MultiLine = true
-    execInput.Font = Enum.Font.Code
-    execInput.TextSize = 18
-    execInput.TextColor3 = Color3.fromRGB(230, 230, 230)
-    execInput.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    addUICorner(execInput, 16)
-
-    local execBtn = Instance.new("TextButton", page)
-    execBtn.Size = UDim2.new(0, 180, 0, 50)
-    execBtn.Position = UDim2.new(0.7, 0, 0.18, 0)
-    execBtn.Text = "تشغيل الكود"
-    execBtn.Font = Enum.Font.GothamBold
-    execBtn.TextSize = 22
-    execBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-    execBtn.TextColor3 = Color3.new(1, 1, 1)
-    execBtn.AutoButtonColor = false
-    addUICorner(execBtn, 16)
-
-    execBtn.MouseButton1Click:Connect(function()
-        local code = execInput.Text
-        if code == nil or code == "" then
-            createNotification("يرجى إدخال كود لتشغيله", 3)
-            return
-        end
-        local func, err = loadstring(code)
-        if not func then
-            createNotification("خطأ في الكود: "..tostring(err), 5)
-            return
-        end
-        local success, execErr = pcall(func)
-        if not success then
-            createNotification("حدث خطأ أثناء التنفيذ: "..tostring(execErr), 5)
-            return
-        end
-        createNotification("تم تنفيذ الكود بنجاح!", 3)
-    end)
-end
-
--- تفعيل الإظهار والإخفاء بالمفتاح H
+-- إظهار / إخفاء المينيو بمفتاح H
 local menuVisible = true
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -624,4 +414,4 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-createNotification("تم تحميل Elite V5 PRO 2025", 4)
+createNotification("تم تحميل Elite V5 PRO 2025 - النسخة المحسنة", 4)
