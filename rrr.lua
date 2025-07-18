@@ -370,3 +370,32 @@ local function noclip()
         if not character then return end
         for _, part in pairs(character:GetChildren()) do
             if
+part:IsA("BasePart") then
+part.CanCollide = false
+end
+end
+end
+end
+
+-- Bang Animation
+local function bang()
+if isBangActive and targetPlayer and targetPlayer.Character and LocalPlayer.Character then
+local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+if root and targetRoot then
+root.CFrame = targetRoot.CFrame * CFrame.new(0, 1.2, 1.25)
+end
+end
+end
+
+-- RunService main loop
+RunService.RenderStepped:Connect(function()
+if godModeEnabled then
+local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+if humanoid and humanoid.Health < humanoid.MaxHealth then
+humanoid.Health = humanoid.MaxHealth
+end
+end
+noclip()
+bang()
+end)
