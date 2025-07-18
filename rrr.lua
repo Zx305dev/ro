@@ -7,6 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 -- إنشاء GUI رئيسية
 local EliteMenu = Instance.new("ScreenGui")
@@ -133,7 +134,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
 end)
 
 -- التبويبات
-local Tabs = {"الرئيسية", "Bang", "اللاعب", "Noclip", "الإعدادات"}
+local Tabs = {"الرئيسية", "Bang", "اللاعب", "الإعدادات", "معلومات السيرفر"}
 local TabButtons = {}
 Pages = {}
 
@@ -183,38 +184,35 @@ for i, tabName in ipairs(Tabs) do
     Pages[i] = page
 end
 
--- إضافة محتوى بدائي أو شرح لكل صفحة فارغة لتوضيح وجودها
-for i, page in pairs(Pages) do
-    if #page:GetChildren() == 0 then
-        local placeholder = Instance.new("TextLabel", page)
-        placeholder.Size = UDim2.new(1, 0, 1, 0)
-        placeholder.BackgroundTransparency = 1
-        placeholder.TextColor3 = Color3.fromRGB(150, 150, 150)
-        placeholder.Font = Enum.Font.Gotham
-        placeholder.TextSize = 18
-        placeholder.Text = "هذه الصفحة فارغة حالياً. سيتم تحديثها قريباً."
-        placeholder.TextWrapped = true
-        placeholder.TextXAlignment = Enum.TextXAlignment.Center
-        placeholder.TextYAlignment = Enum.TextYAlignment.Center
-    end
+-- الصفحة 1 - الرئيسية (يمكن تعديلها أو إضافة أي أدوات)
+do
+    local page = Pages[1]
+    page:ClearAllChildren()
+    local welcomeLabel = Instance.new("TextLabel", page)
+    welcomeLabel.Size = UDim2.new(1, 0, 0, 60)
+    welcomeLabel.Position = UDim2.new(0, 0, 0, 20)
+    welcomeLabel.BackgroundTransparency = 1
+    welcomeLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    welcomeLabel.Font = Enum.Font.GothamBold
+    welcomeLabel.TextSize = 26
+    welcomeLabel.Text = "مرحباً بك في Elite V5 PRO 2025!"
+    welcomeLabel.TextWrapped = true
+    welcomeLabel.TextXAlignment = Enum.TextXAlignment.Center
+    welcomeLabel.TextYAlignment = Enum.TextYAlignment.Center
+
+    local descLabel = Instance.new("TextLabel", page)
+    descLabel.Size = UDim2.new(1, -20, 0, 40)
+    descLabel.Position = UDim2.new(0, 10, 0, 90)
+    descLabel.BackgroundTransparency = 1
+    descLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    descLabel.Font = Enum.Font.Gotham
+    descLabel.TextSize = 16
+    descLabel.Text = "استخدم القائمة للتنقل بين الخيارات وتفعيل الهاكات بسهولة."
+    descLabel.TextWrapped = true
+    descLabel.TextXAlignment = Enum.TextXAlignment.Center
 end
 
--- تحسين البحث التلقائي عن اللاعب (Autocomplete)
-local function findPlayerByPartialName(partial)
-    if not partial or partial == "" then return nil end
-    partial = partial:lower()
-    local matches = {}
-    for _, player in pairs(Players:GetPlayers()) do
-        local name = player.Name:lower()
-        if name:find(partial, 1, true) == 1 then -- يبدأ بنفس الحروف
-            table.insert(matches, player)
-        end
-    end
-    if #matches == 0 then return nil end
-    return matches[1] -- نرجع أول تطابق
-end
-
--- === صفحة Bang - تحديث نظام البحث والتحديد ===
+-- الصفحة 2 - Bang (الكود السابق مع البحث الذكي)
 do
     local page = Pages[2]
     page:ClearAllChildren()
@@ -280,7 +278,20 @@ do
         end
     end)
 
-    -- Variables to control Bang
+    local function findPlayerByPartialName(partial)
+        if not partial or partial == "" then return nil end
+        partial = partial:lower()
+        local matches = {}
+        for _, player in pairs(Players:GetPlayers()) do
+            local name = player.Name:lower()
+            if name:find(partial, 1, true) == 1 then
+                table.insert(matches, player)
+            end
+        end
+        if #matches == 0 then return nil end
+        return matches[1]
+    end
+
     local bangActive = false
     local moveSpeed = 0.5
     local targetPlayer = nil
@@ -298,100 +309,118 @@ do
         createNotification(bangActive and ("تم تفعيل Bang على " .. targetPlayer.Name) or "تم إيقاف Bang", 3)
     end)
 
-    -- تحديث سرعة الحركة من السلايدر
     speedSlider.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local relX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
             local percent = relX / speedSlider.AbsoluteSize.X
-            moveSpeed = percent * 5 -- سرعة من 0 إلى 5
+            moveSpeed = percent * 5
         end
     end)
 
-    -- Heartbeat لتحريك اللاعب تلقائياً عند تفعيل Bang
     RS.Heartbeat:Connect(function(dt)
         if bangActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local targetHRP = targetPlayer.Character.HumanoidRootPart
             local localHRP = LocalPlayer.Character.HumanoidRootPart
-            -- موقع من خلف الهدف مع رفع بسيط للأرتفاع
             local behindPos = targetHRP.CFrame * CFrame.new(0, 1.5, 2.5)
-            -- تحرك سلس نحو الموقع
             localHRP.CFrame = localHRP.CFrame:Lerp(behindPos, math.clamp(moveSpeed * dt * 10, 0, 1))
         end
     end)
 end
 
--- === صفحة اللاعب - إضافات سرعة المشي والقفز الخارقة ===
+-- الصفحة 3 - معلومات اللاعب الكاملة
 do
     local page = Pages[3]
     page:ClearAllChildren()
 
-    -- سرعة المشي (slider)
-    local speedLabel = Instance.new("TextLabel", page)
-    speedLabel.Size = UDim2.new(0, 280, 0, 30)
-    speedLabel.Position = UDim2.new(0.1, 0, 0.1, 0)
-    speedLabel.BackgroundTransparency = 1
-    speedLabel.Font = Enum.Font.Gotham
-    speedLabel.TextSize = 20
-    speedLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    speedLabel.Text = "سرعة المشي: 16"
+    local function createInfoLabel(text, posY)
+        local label = Instance.new("TextLabel", page)
+        label.Size = UDim2.new(1, -40, 0, 30)
+        label.Position = UDim2.new(0, 20, 0, posY)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(230, 230, 230)
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 20
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Text = text
+        return label
+    end
 
-    local speedSlider = Instance.new("Frame", page)
-    speedSlider.Size = UDim2.new(0, 280, 0, 30)
-    speedSlider.Position = UDim2.new(0.1, 0, 0.15, 0)
-    speedSlider.BackgroundColor3 = Color3.fromRGB(30, 140, 40)
-    addUICorner(speedSlider, 14)
+    local playerNameLabel = createInfoLabel("اسم اللاعب: " .. LocalPlayer.Name, 10)
+    local userIdLabel = createInfoLabel("UserId: " .. tostring(LocalPlayer.UserId), 45)
+    local healthLabel = createInfoLabel("الصحة: غير متاح", 80)
+    local armorLabel = createInfoLabel("الدروع: غير متاح", 115)
+    local posLabel = createInfoLabel("الموقع: غير متاح", 150)
+    local speedLabel = createInfoLabel("السرعة: غير متاح", 185)
+    local velLabel = createInfoLabel("السرعة الحالية: غير متاح", 220)
 
-    local speedFill = Instance.new("Frame", speedSlider)
-    speedFill.Size = UDim2.new(0.5, 0, 1, 0)
-    speedFill.BackgroundColor3 = Color3.fromRGB(60, 220, 80)
-    addUICorner(speedFill, 14)
-
-    local draggingSpeed = false
-    speedSlider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSpeed = true end
-    end)
-    speedSlider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSpeed = false end
-    end)
-    speedSlider.InputChanged:Connect(function(input)
-        if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relativeX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
-            local percent = relativeX / speedSlider.AbsoluteSize.X
-            speedFill.Size = UDim2.new(percent, 0, 1, 0)
-            local speedValue = math.floor(percent * 100 * 2) / 2 + 8 -- 8 إلى 108 تقريباً
-            speedLabel.Text = "سرعة المشي: " .. tostring(speedValue)
-            local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    RS.Heartbeat:Connect(function()
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
             if humanoid then
-                humanoid.WalkSpeed = speedValue
+                healthLabel.Text = string.format("الصحة: %.0f / %.0f", humanoid.Health, humanoid.MaxHealth)
             end
+            if humanoid and humanoid:FindFirstChild("Armor") then
+                armorLabel.Text = "الدروع: " .. tostring(humanoid.Armor.Value)
+            else
+                armorLabel.Text = "الدروع: غير متاح"
+            end
+            if rootPart then
+                local pos = rootPart.Position
+                posLabel.Text = string.format("الموقع: X=%.1f Y=%.1f Z=%.1f", pos.X, pos.Y, pos.Z)
+                local vel = rootPart.Velocity
+                velLabel.Text = string.format("السرعة الحالية: X=%.1f Y=%.1f Z=%.1f", vel.X, vel.Y, vel.Z)
+                speedLabel.Text = string.format("السرعة: %.1f", vel.Magnitude)
+            else
+                posLabel.Text = "الموقع: غير متاح"
+                velLabel.Text = "السرعة الحالية: غير متاح"
+                speedLabel.Text = "السرعة: غير متاح"
+            end
+        else
+            healthLabel.Text = "الصحة: غير متاح"
+            armorLabel.Text = "الدروع: غير متاح"
+            posLabel.Text = "الموقع: غير متاح"
+            speedLabel.Text = "السرعة: غير متاح"
+            velLabel.Text = "السرعة الحالية: غير متاح"
         end
     end)
 
-    -- زر القفز الخارقة
+    -- أزرار لتعديل سرعة المشي والقفز
+    local speedBtn = Instance.new("TextButton", page)
+    speedBtn.Size = UDim2.new(0, 180, 0, 45)
+    speedBtn.Position = UDim2.new(0, 20, 0, 260)
+    speedBtn.Text = "زيادة سرعة المشي"
+    speedBtn.Font = Enum.Font.GothamBold
+    speedBtn.TextSize = 22
+    speedBtn.BackgroundColor3 = Color3.fromRGB(45, 100, 180)
+    speedBtn.TextColor3 = Color3.new(1, 1, 1)
+    addUICorner(speedBtn, 12)
+
+    speedBtn.MouseButton1Click:Connect(function()
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = 100
+            createNotification("تم زيادة سرعة المشي لـ 100", 3)
+        end
+    end)
+
     local jumpBtn = Instance.new("TextButton", page)
-    jumpBtn.Size = UDim2.new(0, 180, 0, 50)
-    jumpBtn.Position = UDim2.new(0.1, 0, 0.3, 0)
-    jumpBtn.Text = "قفزة خارقة (Jump Power)"
+    jumpBtn.Size = UDim2.new(0, 180, 0, 45)
+    jumpBtn.Position = UDim2.new(0, 220, 0, 260)
+    jumpBtn.Text = "قفزة خارقة"
     jumpBtn.Font = Enum.Font.GothamBold
     jumpBtn.TextSize = 22
-    jumpBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 160)
+    jumpBtn.BackgroundColor3 = Color3.fromRGB(45, 100, 180)
     jumpBtn.TextColor3 = Color3.new(1, 1, 1)
-    jumpBtn.AutoButtonColor = false
-    addUICorner(jumpBtn, 16)
-
-    jumpBtn.MouseEnter:Connect(function()
-        tweenColor(jumpBtn, "BackgroundColor3", Color3.fromRGB(30, 140, 210), 0.3)
-    end)
-    jumpBtn.MouseLeave:Connect(function()
-        tweenColor(jumpBtn, "BackgroundColor3", Color3.fromRGB(0, 100, 160), 0.3)
-    end)
+    addUICorner(jumpBtn, 12)
 
     jumpBtn.MouseButton1Click:Connect(function()
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.JumpPower = 150
             createNotification("تم تفعيل القفزة الخارقة!", 3)
-            task.delay(8, function()
+            task.delay(7, function()
                 if humanoid then
                     humanoid.JumpPower = 50
                     createNotification("تم إعادة قوة القفز للوضع الطبيعي", 3)
@@ -399,11 +428,119 @@ do
             end)
         end
     end)
-
-    -- صفحة Noclip (4) و الإعدادات (5) ... يمكنك استكمالهم بنفس الشكل السابق أو أطلب مني أكملها الآن
 end
 
--- إظهار / إخفاء المينيو بمفتاح H
+-- الصفحة 4 - الإعدادات
+do
+    local page = Pages[4]
+    page:ClearAllChildren()
+
+    local espToggle = Instance.new("TextButton", page)
+    espToggle.Size = UDim2.new(0, 200, 0, 50)
+    espToggle.Position = UDim2.new(0.1, 0, 0.1, 0)
+    espToggle.Text = "تبديل ESP"
+    espToggle.Font = Enum.Font.GothamBold
+    espToggle.TextSize = 24
+    espToggle.BackgroundColor3 = Color3.fromRGB(50, 0, 100)
+    espToggle.TextColor3 = Color3.new(1, 1, 1)
+    espToggle.AutoButtonColor = false
+    addUICorner(espToggle, 16)
+
+    local espActive = false
+    espToggle.MouseButton1Click:Connect(function()
+        espActive = not espActive
+        espToggle.Text = espActive and "تعطيل ESP" or "تبديل ESP"
+        createNotification(espActive and "تم تفعيل ESP" or "تم تعطيل ESP", 3)
+        -- هنا تضيف كود ESP عند التفعيل
+    end)
+
+    local nightModeToggle = Instance.new("TextButton", page)
+    nightModeToggle.Size = UDim2.new(0, 200, 0, 50)
+    nightModeToggle.Position = UDim2.new(0.1, 0, 0.3, 0)
+    nightModeToggle.Text = "تبديل الوضع الليلي"
+    nightModeToggle.Font = Enum.Font.GothamBold
+    nightModeToggle.TextSize = 24
+    nightModeToggle.BackgroundColor3 = Color3.fromRGB(50, 0, 100)
+    nightModeToggle.TextColor3 = Color3.new(1, 1, 1)
+    nightModeToggle.AutoButtonColor = false
+    addUICorner(nightModeToggle, 16)
+
+    local nightActive = false
+    nightModeToggle.MouseButton1Click:Connect(function()
+        nightActive = not nightActive
+        nightModeToggle.Text = nightActive and "تعطيل الوضع الليلي" or "تبديل الوضع الليلي"
+        createNotification(nightActive and "تم تفعيل الوضع الليلي" or "تم تعطيل الوضع الليلي", 3)
+        -- أضف كود تعديل الإضاءة هنا
+    end)
+
+    local showServerInfoToggle = Instance.new("TextButton", page)
+    showServerInfoToggle.Size = UDim2.new(0, 200, 0, 50)
+    showServerInfoToggle.Position = UDim2.new(0.1, 0, 0.5, 0)
+    showServerInfoToggle.Text = "عرض معلومات السيرفر"
+    showServerInfoToggle.Font = Enum.Font.GothamBold
+    showServerInfoToggle.TextSize = 24
+    showServerInfoToggle.BackgroundColor3 = Color3.fromRGB(50, 0, 100)
+    showServerInfoToggle.TextColor3 = Color3.new(1, 1, 1)
+    showServerInfoToggle.AutoButtonColor = false
+    addUICorner(showServerInfoToggle, 16)
+
+    local showServerInfo = false
+    showServerInfoToggle.MouseButton1Click:Connect(function()
+        showServerInfo = not showServerInfo
+        showServerInfoToggle.Text = showServerInfo and "إخفاء معلومات السيرفر" or "عرض معلومات السيرفر"
+        Pages[5].Visible = showServerInfo
+        createNotification(showServerInfo and "تم عرض معلومات السيرفر" or "تم إخفاء معلومات السيرفر", 3)
+    end)
+end
+
+-- الصفحة 5 - معلومات السيرفر
+do
+    local page = Pages[5]
+    page.Visible = false
+    page:ClearAllChildren()
+
+    local playerCountLabel = Instance.new("TextLabel", page)
+    playerCountLabel.Size = UDim2.new(1, -40, 0, 30)
+    playerCountLabel.Position = UDim2.new(0, 20, 0, 20)
+    playerCountLabel.BackgroundTransparency = 1
+    playerCountLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    playerCountLabel.Font = Enum.Font.GothamBold
+    playerCountLabel.TextSize = 22
+    playerCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local serverTimeLabel = Instance.new("TextLabel", page)
+    serverTimeLabel.Size = UDim2.new(1, -40, 0, 30)
+    serverTimeLabel.Position = UDim2.new(0, 20, 0, 60)
+    serverTimeLabel.BackgroundTransparency = 1
+    serverTimeLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    serverTimeLabel.Font = Enum.Font.GothamBold
+    serverTimeLabel.TextSize = 22
+    serverTimeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local pingLabel = Instance.new("TextLabel", page)
+    pingLabel.Size = UDim2.new(1, -40, 0, 30)
+    pingLabel.Position = UDim2.new(0, 20, 0, 100)
+    pingLabel.BackgroundTransparency = 1
+    pingLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+    pingLabel.Font = Enum.Font.GothamBold
+    pingLabel.TextSize = 22
+    pingLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    RunService.Heartbeat:Connect(function()
+        local playerCount = #Players:GetPlayers()
+        playerCountLabel.Text = "عدد اللاعبين في السيرفر: " .. playerCount
+
+        -- الوقت المحلي في السيرفر (تاريخ ووقت الجهاز المحلي هنا)
+        local timeNow = os.date("*t")
+        serverTimeLabel.Text = string.format("الوقت الحالي: %02d:%02d:%02d", timeNow.hour, timeNow.min, timeNow.sec)
+
+        -- Ping تقريبي (لو كانت خاصية متاحة)
+        local pingValue = LocalPlayer:GetNetworkPing()
+        pingLabel.Text = string.format("Ping: %.0f ms", pingValue * 1000)
+    end)
+end
+
+-- إظهار/إخفاء المينيو بمفتاح H
 local menuVisible = true
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -414,4 +551,4 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-createNotification("تم تحميل Elite V5 PRO 2025 - النسخة المحسنة", 4)
+createNotification("تم تحميل Elite V5 PRO 2025 - النسخة المحسنة مع صفحات كاملة", 4)
