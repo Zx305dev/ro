@@ -1,27 +1,21 @@
--- Elite V5 PRO GUI متكامل ومطور 2025
--- شامل: صفحة رئيسية (بروفايل مع صورة اللاعب + معلومات كاملة)
--- صفحة معلومات السيرفر
--- صفحة 18+ مع أوامر Face و Bang على لاعب بالاسم
--- قابل للسحب والتحريك، بأحجام محسنة وتجربة مستخدم سلسة
+-- Elite V5 PRO 2025 - سكربت متكامل متطور
+-- تشمل: صفحة بروفايل متحركة، معلومات السيرفر، وميزة Face Bang متقدمة
+-- Face Bang: يقترب من وجه اللاعب الهدف، يتبع وجهه، ويتحرك أمامه ويتراجع
 
--- منع تشغيل نسخ متعددة
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
--- الخدمات
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+
 local LocalPlayer = Players.LocalPlayer
 
--- إنشاء واجهة المستخدم الأساسية
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
 EliteMenu.ResetOnSpawn = false
 EliteMenu.Parent = game.CoreGui
 
--- دوال مساعدة
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 8)
@@ -29,11 +23,6 @@ local function addUICorner(parent, radius)
     return corner
 end
 
-local function tweenColor(instance, property, goalColor, duration)
-    TweenService:Create(instance, TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {[property] = goalColor}):Play()
-end
-
--- دالة جعل الإطار قابل للسحب
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
     local function update(input)
@@ -64,11 +53,10 @@ local function makeDraggable(frame)
     end)
 end
 
--- === إنشاء الإطار الرئيسي ===
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 500, 0, 550) -- حجم أكبر ومناسب
-frame.Position = UDim2.new(0.5, -250, 0.3, 0)
+frame.Size = UDim2.new(0, 520, 0, 580)
+frame.Position = UDim2.new(0.5, -260, 0.3, 0)
 frame.BackgroundColor3 = Color3.fromRGB(70, 0, 130)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -77,7 +65,6 @@ frame.Parent = EliteMenu
 addUICorner(frame, 18)
 makeDraggable(frame)
 
--- === شريط العنوان ===
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1, 0, 0, 45)
 header.BackgroundColor3 = Color3.fromRGB(50, 0, 90)
@@ -94,7 +81,6 @@ title.TextColor3 = Color3.new(1, 1, 1)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Position = UDim2.new(0.03, 0, 0, 0)
 
--- زر الإغلاق
 local closeBtn = Instance.new("TextButton", header)
 closeBtn.Size = UDim2.new(0, 40, 0, 40)
 closeBtn.Position = UDim2.new(0.92, 0, 0, 3)
@@ -106,7 +92,6 @@ closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.AutoButtonColor = false
 addUICorner(closeBtn, 14)
 
--- زر التصغير
 local minimizeBtn = Instance.new("TextButton", header)
 minimizeBtn.Size = UDim2.new(0, 40, 0, 40)
 minimizeBtn.Position = UDim2.new(0.83, 0, 0, 3)
@@ -118,7 +103,6 @@ minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
 minimizeBtn.AutoButtonColor = false
 addUICorner(minimizeBtn, 14)
 
--- === شريط الصفحات ===
 local pageBar = Instance.new("Frame", frame)
 pageBar.Size = UDim2.new(1, 0, 0, 55)
 pageBar.Position = UDim2.new(0, 0, 0, 45)
@@ -130,13 +114,11 @@ pageLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 pageLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 pageLayout.Padding = UDim.new(0.03, 0)
 
--- === حاوية الصفحات ===
 local pagesContainer = Instance.new("Frame", frame)
 pagesContainer.Size = UDim2.new(1, 0, 1, -100)
 pagesContainer.Position = UDim2.new(0, 0, 0, 100)
 pagesContainer.BackgroundTransparency = 1
 
--- إنشاء أزرار الصفحات ودوال الانتقال بينهم
 local pages = {}
 local pageButtons = {}
 
@@ -145,7 +127,7 @@ local pageNames = {"الرئيسية", "معلومات السيرفر", "18+"}
 local function createPageButton(name)
     local btn = Instance.new("TextButton")
     btn.Text = name
-    btn.Size = UDim2.new(0, 140, 0, 45)
+    btn.Size = UDim2.new(0, 150, 0, 45)
     btn.BackgroundColor3 = Color3.fromRGB(130, 0, 200)
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
@@ -154,11 +136,11 @@ local function createPageButton(name)
     addUICorner(btn, 14)
 
     btn.MouseEnter:Connect(function()
-        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(200, 0, 255), 0.2)
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 0, 255)}):Play()
     end)
 
     btn.MouseLeave:Connect(function()
-        tweenColor(btn, "BackgroundColor3", Color3.fromRGB(130, 0, 200), 0.2)
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(130, 0, 200)}):Play()
     end)
 
     return btn
@@ -190,15 +172,13 @@ for i, name in ipairs(pageNames) do
     end)
 end
 
--- نفتح الصفحة الرئيسية افتراضياً
 hideAllPages()
 pages["الرئيسية"].Visible = true
 
--- ======= محتوى الصفحة الرئيسية: معلومات اللاعب والبروفايل =======
+-- صفحة الرئيسية: بيانات اللاعب
 do
     local page = pages["الرئيسية"]
 
-    -- حاوية معلومات اللاعب
     local playerInfoFrame = Instance.new("Frame", page)
     playerInfoFrame.Size = UDim2.new(0.95, 0, 0, 180)
     playerInfoFrame.Position = UDim2.new(0.025, 0, 0.02, 0)
@@ -206,7 +186,6 @@ do
     playerInfoFrame.BorderSizePixel = 0
     addUICorner(playerInfoFrame, 18)
 
-    -- صورة البروفايل (يتم تحميل صورة لاعب تلقائياً)
     local profileImage = Instance.new("ImageLabel", playerInfoFrame)
     profileImage.Size = UDim2.new(0, 120, 0, 120)
     profileImage.Position = UDim2.new(0.02, 0, 0.1, 0)
@@ -214,7 +193,6 @@ do
     profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
     addUICorner(profileImage, 60)
 
-    -- اسم اللاعب
     local playerNameLabel = Instance.new("TextLabel", playerInfoFrame)
     playerNameLabel.Size = UDim2.new(0.6, 0, 0, 40)
     playerNameLabel.Position = UDim2.new(0.45, 0, 0.15, 0)
@@ -225,7 +203,6 @@ do
     playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
     playerNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- المستوى الافتراضي: كمثال (يمكن ربطها مع بيانات حقيقية من السيرفر)
     local levelLabel = Instance.new("TextLabel", playerInfoFrame)
     levelLabel.Size = UDim2.new(0.5, 0, 0, 30)
     levelLabel.Position = UDim2.new(0.45, 0, 0.45, 0)
@@ -233,9 +210,8 @@ do
     levelLabel.Font = Enum.Font.GothamBold
     levelLabel.TextSize = 22
     levelLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    levelLabel.Text = "المستوى: 23" -- عينة ثابتة
+    levelLabel.Text = "المستوى: 23"
 
-    -- الصحة + سرعة الحركة + الطاقة (مثال ديناميكي)
     local statsContainer = Instance.new("Frame", playerInfoFrame)
     statsContainer.Size = UDim2.new(0.9, 0, 0, 60)
     statsContainer.Position = UDim2.new(0.05, 0, 0.7, 0)
@@ -249,7 +225,7 @@ do
         addUICorner(container, 12)
 
         local fill = Instance.new("Frame", container)
-        fill.Size = UDim2.new(0.7, 0, 1, 0) -- نسبة تعبئة ثابتة مثلاً (يمكن ربطها بالحالة الفعلية)
+        fill.Size = UDim2.new(0.7, 0, 1, 0)
         fill.BackgroundColor3 = color
         addUICorner(fill, 12)
 
@@ -269,7 +245,6 @@ do
     local speedBar = createStatBar(statsContainer, "السرعة", Color3.fromRGB(0, 150, 255), 0.35)
     local energyBar = createStatBar(statsContainer, "الطاقة", Color3.fromRGB(255, 215, 0), 0.7)
 
-    -- مثال لتحديث الصحة والحركة - ربط بالحالة الحقيقية لو متاح
     local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if humanoid then
         local function updateStats()
@@ -279,7 +254,6 @@ do
             local speedPercent = math.clamp(humanoid.WalkSpeed / 30, 0, 1)
             speedBar.fill:TweenSize(UDim2.new(speedPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
 
-            -- طاقة افتراضية (يمكن ربطها بحالة فعلية)
             local energyPercent = 0.75
             energyBar.fill:TweenSize(UDim2.new(energyPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
         end
@@ -288,15 +262,14 @@ do
         humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(updateStats)
     end
 
-    -- زر تحديث بروفايل اللاعب (إذا تم تغيير شخصية)
-    LocalPlayer.CharacterAdded:Connect(function(char)
-        wait(1)
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
         profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
         playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
     end)
 end
 
--- ======= محتوى صفحة معلومات السيرفر =======
+-- صفحة معلومات السيرفر
 do
     local page = pages["معلومات السيرفر"]
 
@@ -313,7 +286,6 @@ do
     infoText.BorderSizePixel = 0
     addUICorner(infoText, 18)
 
-    -- بيانات السيرفر (مثال، يمكن ربطها بالبيانات الحقيقية لو متاحة)
     local maxPlayers = 20
     local currentPlayers = #Players:GetPlayers()
     local serverName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
@@ -330,11 +302,10 @@ do
     ]], serverName, currentPlayers, maxPlayers, os.date("%H:%M:%S"), game.PlaceId)
 end
 
--- ======= صفحة 18+ (Face Bang) - تنفيذ حركات على لاعب معين =======
+-- صفحة 18+ مع Face Bang متقدم
 do
     local page = pages["18+"]
 
-    -- تعليمات
     local instructions = Instance.new("TextLabel", page)
     instructions.Size = UDim2.new(0.95, 0, 0, 50)
     instructions.Position = UDim2.new(0.025, 0, 0.02, 0)
@@ -342,10 +313,9 @@ do
     instructions.TextColor3 = Color3.new(1, 1, 1)
     instructions.Font = Enum.Font.GothamBold
     instructions.TextSize = 20
-    instructions.Text = "اكتب اسم اللاعب واضغط Execute لتشغيل FaceBang"
+    instructions.Text = "أدخل اسم اللاعب واضغط Execute لتشغيل Face Bang المتقدم"
     instructions.TextXAlignment = Enum.TextXAlignment.Center
 
-    -- حقل الإدخال
     local inputBox = Instance.new("TextBox", page)
     inputBox.Size = UDim2.new(0.6, 0, 0, 35)
     inputBox.Position = UDim2.new(0.05, 0, 0.12, 0)
@@ -356,7 +326,6 @@ do
     inputBox.TextColor3 = Color3.new(0, 0, 0)
     addUICorner(inputBox, 14)
 
-    -- زر التنفيذ
     local executeBtn = Instance.new("TextButton", page)
     executeBtn.Size = UDim2.new(0.3, 0, 0, 35)
     executeBtn.Position = UDim2.new(0.7, 0, 0.12, 0)
@@ -367,7 +336,6 @@ do
     executeBtn.TextColor3 = Color3.new(1, 1, 1)
     addUICorner(executeBtn, 14)
 
-    -- مناطق عرض الحالة
     local statusLabel = Instance.new("TextLabel", page)
     statusLabel.Size = UDim2.new(0.95, 0, 0, 35)
     statusLabel.Position = UDim2.new(0.025, 0, 0.18, 0)
@@ -378,40 +346,90 @@ do
     statusLabel.Text = "Status: Ready"
     statusLabel.TextXAlignment = Enum.TextXAlignment.Center
 
-    -- تنفيذ حركات Face Bang على اللاعب المحدد
-    local function faceBang(targetPlayer)
-        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            statusLabel.Text = "Status: اللاعب غير متصل أو لم يتم العثور على الشخصية"
-            return
-        end
-        local hrp = targetPlayer.Character.HumanoidRootPart
-        local originalCFrame = hrp.CFrame
+    local faceBangRunning = false
+    local faceBangConnection
 
-        statusLabel.Text = "Status: بدء Face Bang على " .. targetPlayer.Name
+    local function getFaceCFrame(targetChar, sourcePos, distance)
+        -- يحصل على CFrame مقابل وجه الشخصية
+        local hrp = targetChar:FindFirstChild("HumanoidRootPart")
+        local head = targetChar:FindFirstChild("Head")
+        if not hrp or not head then return nil end
 
-        -- حركة بسيطة متكررة للأمام والخلف
-        for i = 1, 10 do
-            hrp.CFrame = originalCFrame * CFrame.new(0, 0, -1)
-            task.wait(0.15)
-            hrp.CFrame = originalCFrame * CFrame.new(0, 0, 1)
-            task.wait(0.15)
-        end
-        hrp.CFrame = originalCFrame
-
-        statusLabel.Text = "Status: انتهى Face Bang على " .. targetPlayer.Name
+        local lookVector = (head.CFrame.p - hrp.CFrame.p).Unit
+        return CFrame.new(hrp.CFrame.p) * CFrame.new(lookVector * distance)
     end
 
-    -- تنفيذ الأمر عند الضغط على الزر
+    local function faceBang(targetPlayer)
+        if faceBangRunning then
+            statusLabel.Text = "Status: Face Bang قيد التشغيل بالفعل"
+            return
+        end
+        if not targetPlayer or not targetPlayer.Character then
+            statusLabel.Text = "Status: اللاعب غير متصل أو لا توجد شخصية"
+            return
+        end
+
+        local localChar = LocalPlayer.Character
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
+            statusLabel.Text = "Status: لم يتم العثور على شخصية اللاعب المحلي"
+            return
+        end
+
+        local hrpLocal = localChar.HumanoidRootPart
+        local targetChar = targetPlayer.Character
+        local hrpTarget = targetChar:FindFirstChild("HumanoidRootPart")
+        local headTarget = targetChar:FindFirstChild("Head")
+        if not hrpTarget or not headTarget then
+            statusLabel.Text = "Status: لا يمكن الوصول إلى أجزاء جسم الهدف"
+            return
+        end
+
+        faceBangRunning = true
+        statusLabel.Text = "Status: بدأ Face Bang على " .. targetPlayer.Name
+
+        -- نستخدم RunService.RenderStepped لتحديث موقع الشخصية المحلية أمام وجه الهدف بثبات
+        local toggle = true
+        local count = 0
+        local maxCount = 20
+
+        faceBangConnection = RunService.RenderStepped:Connect(function()
+            if count >= maxCount or not faceBangRunning then
+                faceBangConnection:Disconnect()
+                statusLabel.Text = "Status: انتهى Face Bang على " .. targetPlayer.Name
+                faceBangRunning = false
+                return
+            end
+
+            -- حساب موقع أمام وجه الهدف بثبات 1.5 studs
+            local targetCFrame = headTarget.CFrame
+            local offset = targetCFrame.LookVector * 1.5
+            local newPos = targetCFrame.Position + offset
+
+            -- حركة ذهاب وإياب (0.5 studs)
+            if toggle then
+                hrpLocal.CFrame = CFrame.new(newPos + targetCFrame.LookVector * 0.5, targetCFrame.Position)
+            else
+                hrpLocal.CFrame = CFrame.new(newPos - targetCFrame.LookVector * 0.5, targetCFrame.Position)
+            end
+            toggle = not toggle
+            count += 1
+        end)
+    end
+
     executeBtn.MouseButton1Click:Connect(function()
+        if faceBangRunning then
+            statusLabel.Text = "Status: الرجاء الانتظار حتى ينتهي Face Bang الحالي"
+            return
+        end
+
         local targetName = inputBox.Text:match("%S+")
         if not targetName or targetName == "" then
-            statusLabel.Text = "Status: يرجى إدخال اسم لاعب صالح"
+            statusLabel.Text = "Status: الرجاء إدخال اسم لاعب صحيح"
             return
         end
 
         local targetPlayer = Players:FindFirstChild(targetName)
         if not targetPlayer then
-            -- البحث بحساسية أقل (مثل الاسم الجزئي)
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr.Name:lower():find(targetName:lower()) then
                     targetPlayer = plr
@@ -428,7 +446,6 @@ do
     end)
 end
 
--- ======== أزرار التحكم ========
 closeBtn.MouseButton1Click:Connect(function()
     EliteMenu:Destroy()
 end)
@@ -437,14 +454,14 @@ local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     if minimized then
-        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 60)}):Play()
+        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 520, 0, 60)}):Play()
         for _, child in pairs(frame:GetChildren()) do
             if child ~= header then
                 child.Visible = false
             end
         end
     else
-        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 550)}):Play()
+        TweenService:Create(frame, TweenInfo.new(0.3), {Size = UDim2.new(0, 520, 0, 580)}):Play()
         for _, child in pairs(frame:GetChildren()) do
             child.Visible = true
         end
@@ -485,6 +502,6 @@ local function showNotification(text)
     end)
 end
 
-showNotification("مرحبا بك في Elite V5 PRO")
+showNotification("مرحبا بك في Elite V5 PRO | 2025")
 
--- النهاية
+-- انتهى السكربت المتكامل
