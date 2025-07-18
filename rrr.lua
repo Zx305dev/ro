@@ -1,6 +1,4 @@
--- Elite V5 PRO 2025 - سكربت متكامل متطور
--- تشمل: صفحة بروفايل متحركة، معلومات السيرفر، وميزة Face Bang متقدمة
--- Face Bang: يقترب من وجه اللاعب الهدف، يتبع وجهه، ويتحرك أمامه ويتراجع
+-- Elite V5 PRO 2025 - سكربت متكامل ومحسن بالكامل مع Face Bang بطيء + ON/OFF و تحديث بيانات السيرفر واللاعب تلقائياً
 
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
@@ -8,6 +6,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -175,7 +174,7 @@ end
 hideAllPages()
 pages["الرئيسية"].Visible = true
 
--- صفحة الرئيسية: بيانات اللاعب
+-- ======= الصفحة الرئيسية: معلومات اللاعب المتجددة ======= --
 do
     local page = pages["الرئيسية"]
 
@@ -200,7 +199,6 @@ do
     playerNameLabel.Font = Enum.Font.GothamBold
     playerNameLabel.TextSize = 28
     playerNameLabel.TextColor3 = Color3.new(1, 1, 1)
-    playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
     playerNameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
     local levelLabel = Instance.new("TextLabel", playerInfoFrame)
@@ -210,8 +208,7 @@ do
     levelLabel.Font = Enum.Font.GothamBold
     levelLabel.TextSize = 22
     levelLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-    levelLabel.Text = "المستوى: 23"
-
+    
     local statsContainer = Instance.new("Frame", playerInfoFrame)
     statsContainer.Size = UDim2.new(0.9, 0, 0, 60)
     statsContainer.Position = UDim2.new(0.05, 0, 0.7, 0)
@@ -245,9 +242,11 @@ do
     local speedBar = createStatBar(statsContainer, "السرعة", Color3.fromRGB(0, 150, 255), 0.35)
     local energyBar = createStatBar(statsContainer, "الطاقة", Color3.fromRGB(255, 215, 0), 0.7)
 
-    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        local function updateStats()
+    local function updatePlayerInfo()
+        playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
+        levelLabel.Text = "المستوى: 23"
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
             healthBar.fill:TweenSize(UDim2.new(healthPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
 
@@ -256,20 +255,27 @@ do
 
             local energyPercent = 0.75
             energyBar.fill:TweenSize(UDim2.new(energyPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
+        else
+            healthBar.fill.Size = UDim2.new(0, 0, 1, 0)
+            speedBar.fill.Size = UDim2.new(0, 0, 1, 0)
+            energyBar.fill.Size = UDim2.new(0, 0, 1, 0)
         end
-        updateStats()
-        humanoid:GetPropertyChangedSignal("Health"):Connect(updateStats)
-        humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(updateStats)
     end
 
-    LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1)
-        profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
-        playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
+    -- تحديث مستمر للبيانات كل نصف ثانية
+    spawn(function()
+        while EliteMenu.Parent do
+            updatePlayerInfo()
+            profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+            task.wait(0.5)
+        end
     end)
+
+    playerNameLabel.Parent = playerInfoFrame
+    levelLabel.Parent = playerInfoFrame
 end
 
--- صفحة معلومات السيرفر
+-- ======= صفحة معلومات السيرفر مع تحديث تلقائي ======= --
 do
     local page = pages["معلومات السيرفر"]
 
@@ -286,23 +292,36 @@ do
     infoText.BorderSizePixel = 0
     addUICorner(infoText, 18)
 
-    local maxPlayers = 20
-    local currentPlayers = #Players:GetPlayers()
-    local serverName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    local function updateServerInfo()
+        local maxPlayers = 20 -- عدل هنا لو السيرفر يسمح أكثر
+        local currentPlayers = #Players:GetPlayers()
+        local success, info = pcall(function()
+            return MarketplaceService:GetProductInfo(game.PlaceId)
+        end)
 
-    infoText.Text = string.format([[
+        local serverName = success and info.Name or "غير معروف"
+
+        infoText.Text = string.format([[
 معلومات السيرفر:
 
 • اسم السيرفر: %s
 • اللاعبين المتصلين الآن: %d / %d
-• الوقت: %s
+• الوقت الحالي: %s
 • رقم المكان: %d
 
 *تم تطوير الواجهة بواسطة Elite V5 PRO
-    ]], serverName, currentPlayers, maxPlayers, os.date("%H:%M:%S"), game.PlaceId)
+        ]], serverName, currentPlayers, maxPlayers, os.date("%H:%M:%S"), game.PlaceId)
+    end
+
+    spawn(function()
+        while EliteMenu.Parent do
+            updateServerInfo()
+            task.wait(1)
+        end
+    end)
 end
 
--- صفحة 18+ مع Face Bang متقدم
+-- ======= صفحة 18+ مع Face Bang بطيء + ON/OFF ======= --
 do
     local page = pages["18+"]
 
@@ -313,65 +332,70 @@ do
     instructions.TextColor3 = Color3.new(1, 1, 1)
     instructions.Font = Enum.Font.GothamBold
     instructions.TextSize = 20
-    instructions.Text = "أدخل اسم اللاعب واضغط Execute لتشغيل Face Bang المتقدم"
+    instructions.Text = "اكتب اسم اللاعب ثم اضغط تشغيل أو إيقاف Face Bang."
     instructions.TextXAlignment = Enum.TextXAlignment.Center
 
     local inputBox = Instance.new("TextBox", page)
-    inputBox.Size = UDim2.new(0.6, 0, 0, 35)
-    inputBox.Position = UDim2.new(0.05, 0, 0.12, 0)
-    inputBox.PlaceholderText = "اسم اللاعب هنا"
-    inputBox.ClearTextOnFocus = false
+    inputBox.Size = UDim2.new(0.95, 0, 0, 40)
+    inputBox.Position = UDim2.new(0.025, 0, 0.1, 0)
+    inputBox.PlaceholderText = "اسم اللاعب المستهدف"
     inputBox.Font = Enum.Font.GothamBold
-    inputBox.TextSize = 18
+    inputBox.TextSize = 20
     inputBox.TextColor3 = Color3.new(0, 0, 0)
+    inputBox.ClearTextOnFocus = false
     addUICorner(inputBox, 14)
 
-    local executeBtn = Instance.new("TextButton", page)
-    executeBtn.Size = UDim2.new(0.3, 0, 0, 35)
-    executeBtn.Position = UDim2.new(0.7, 0, 0.12, 0)
-    executeBtn.BackgroundColor3 = Color3.fromRGB(200, 20, 20)
-    executeBtn.Text = "Execute"
-    executeBtn.Font = Enum.Font.GothamBold
-    executeBtn.TextSize = 20
-    executeBtn.TextColor3 = Color3.new(1, 1, 1)
-    addUICorner(executeBtn, 14)
-
     local statusLabel = Instance.new("TextLabel", page)
-    statusLabel.Size = UDim2.new(0.95, 0, 0, 35)
-    statusLabel.Position = UDim2.new(0.025, 0, 0.18, 0)
+    statusLabel.Size = UDim2.new(0.95, 0, 0, 30)
+    statusLabel.Position = UDim2.new(0.025, 0, 0.17, 0)
     statusLabel.BackgroundTransparency = 1
     statusLabel.TextColor3 = Color3.new(1, 1, 1)
     statusLabel.Font = Enum.Font.GothamBold
     statusLabel.TextSize = 18
-    statusLabel.Text = "Status: Ready"
+    statusLabel.Text = "الحالة: غير شغال"
     statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+    local buttonsFrame = Instance.new("Frame", page)
+    buttonsFrame.Size = UDim2.new(0.95, 0, 0, 50)
+    buttonsFrame.Position = UDim2.new(0.025, 0, 0.22, 0)
+    buttonsFrame.BackgroundTransparency = 1
+
+    local btnOn = Instance.new("TextButton", buttonsFrame)
+    btnOn.Size = UDim2.new(0.48, 0, 1, 0)
+    btnOn.Position = UDim2.new(0, 0, 0, 0)
+    btnOn.BackgroundColor3 = Color3.fromRGB(0, 200, 90)
+    btnOn.Text = "تشغيل"
+    btnOn.Font = Enum.Font.GothamBold
+    btnOn.TextSize = 22
+    btnOn.TextColor3 = Color3.new(1, 1, 1)
+    addUICorner(btnOn, 14)
+
+    local btnOff = Instance.new("TextButton", buttonsFrame)
+    btnOff.Size = UDim2.new(0.48, 0, 1, 0)
+    btnOff.Position = UDim2.new(0.52, 0, 0, 0)
+    btnOff.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    btnOff.Text = "إيقاف"
+    btnOff.Font = Enum.Font.GothamBold
+    btnOff.TextSize = 22
+    btnOff.TextColor3 = Color3.new(1, 1, 1)
+    addUICorner(btnOff, 14)
 
     local faceBangRunning = false
     local faceBangConnection
 
-    local function getFaceCFrame(targetChar, sourcePos, distance)
-        -- يحصل على CFrame مقابل وجه الشخصية
-        local hrp = targetChar:FindFirstChild("HumanoidRootPart")
-        local head = targetChar:FindFirstChild("Head")
-        if not hrp or not head then return nil end
-
-        local lookVector = (head.CFrame.p - hrp.CFrame.p).Unit
-        return CFrame.new(hrp.CFrame.p) * CFrame.new(lookVector * distance)
-    end
-
     local function faceBang(targetPlayer)
         if faceBangRunning then
-            statusLabel.Text = "Status: Face Bang قيد التشغيل بالفعل"
+            statusLabel.Text = "الحالة: Face Bang قيد التشغيل بالفعل"
             return
         end
         if not targetPlayer or not targetPlayer.Character then
-            statusLabel.Text = "Status: اللاعب غير متصل أو لا توجد شخصية"
+            statusLabel.Text = "الحالة: اللاعب غير متصل أو لا توجد شخصية"
             return
         end
 
         local localChar = LocalPlayer.Character
         if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
-            statusLabel.Text = "Status: لم يتم العثور على شخصية اللاعب المحلي"
+            statusLabel.Text = "الحالة: لم يتم العثور على شخصية اللاعب المحلي"
             return
         end
 
@@ -380,51 +404,53 @@ do
         local hrpTarget = targetChar:FindFirstChild("HumanoidRootPart")
         local headTarget = targetChar:FindFirstChild("Head")
         if not hrpTarget or not headTarget then
-            statusLabel.Text = "Status: لا يمكن الوصول إلى أجزاء جسم الهدف"
+            statusLabel.Text = "الحالة: لا يمكن الوصول إلى أجزاء جسم الهدف"
             return
         end
 
         faceBangRunning = true
-        statusLabel.Text = "Status: بدأ Face Bang على " .. targetPlayer.Name
+        statusLabel.Text = "الحالة: بدأ Face Bang على " .. targetPlayer.Name
 
-        -- نستخدم RunService.RenderStepped لتحديث موقع الشخصية المحلية أمام وجه الهدف بثبات
         local toggle = true
         local count = 0
-        local maxCount = 20
+        local maxCount = math.huge -- لا نهائي طالما مفتوح
+        local speed = 0.2 -- بطيء جداً
 
-        faceBangConnection = RunService.RenderStepped:Connect(function()
-            if count >= maxCount or not faceBangRunning then
+        faceBangConnection = RunService.RenderStepped:Connect(function(dt)
+            if not faceBangRunning then
                 faceBangConnection:Disconnect()
-                statusLabel.Text = "Status: انتهى Face Bang على " .. targetPlayer.Name
-                faceBangRunning = false
+                statusLabel.Text = "الحالة: تم إيقاف Face Bang"
                 return
             end
 
-            -- حساب موقع أمام وجه الهدف بثبات 1.5 studs
+            count += dt
+            if count < speed then return end
+            count = 0
+
+            -- تحديد موقع أمام وجه الهدف 1.5 studs
             local targetCFrame = headTarget.CFrame
             local offset = targetCFrame.LookVector * 1.5
             local newPos = targetCFrame.Position + offset
 
-            -- حركة ذهاب وإياب (0.5 studs)
             if toggle then
-                hrpLocal.CFrame = CFrame.new(newPos + targetCFrame.LookVector * 0.5, targetCFrame.Position)
+                hrpLocal.CFrame = CFrame.new(newPos + targetCFrame.LookVector * 0.3, targetCFrame.Position)
             else
-                hrpLocal.CFrame = CFrame.new(newPos - targetCFrame.LookVector * 0.5, targetCFrame.Position)
+                hrpLocal.CFrame = CFrame.new(newPos - targetCFrame.LookVector * 0.3, targetCFrame.Position)
             end
+
             toggle = not toggle
-            count += 1
         end)
     end
 
-    executeBtn.MouseButton1Click:Connect(function()
+    btnOn.MouseButton1Click:Connect(function()
         if faceBangRunning then
-            statusLabel.Text = "Status: الرجاء الانتظار حتى ينتهي Face Bang الحالي"
+            statusLabel.Text = "الحالة: Face Bang شغال بالفعل"
             return
         end
 
         local targetName = inputBox.Text:match("%S+")
         if not targetName or targetName == "" then
-            statusLabel.Text = "Status: الرجاء إدخال اسم لاعب صحيح"
+            statusLabel.Text = "الحالة: الرجاء إدخال اسم لاعب صحيح"
             return
         end
 
@@ -441,15 +467,25 @@ do
         if targetPlayer then
             faceBang(targetPlayer)
         else
-            statusLabel.Text = "Status: لم يتم العثور على اللاعب"
+            statusLabel.Text = "الحالة: لم يتم العثور على اللاعب"
         end
+    end)
+
+    btnOff.MouseButton1Click:Connect(function()
+        if not faceBangRunning then
+            statusLabel.Text = "الحالة: Face Bang غير شغال"
+            return
+        end
+        faceBangRunning = false
     end)
 end
 
+-- زر الإغلاق
 closeBtn.MouseButton1Click:Connect(function()
     EliteMenu:Destroy()
 end)
 
+-- زر التصغير والتوسيع مع أنيميشن
 local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -502,6 +538,5 @@ local function showNotification(text)
     end)
 end
 
-showNotification("مرحبا بك في Elite V5 PRO | 2025")
+showNotification("مرحبا بك في Elite V5 PRO | 2025 | متكامل ومحسن")
 
--- انتهى السكربت المتكامل
