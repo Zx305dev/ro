@@ -516,4 +516,4 @@ end)
 -- === FINAL SETUP NOTES ===
 print("Elite V5 PRO GUI loaded. Ready to rock, FNLOXER!")
 
--- End of script
+-- End of scriptd
