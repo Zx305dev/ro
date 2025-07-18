@@ -120,14 +120,14 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local Tabs = {"الرئيسية", "Bang", "معلومات اللاعب", "معلومات السيرفر"}
+local Tabs = {"الرئيسية", "Bang", "معلومات اللاعب"}
 local TabButtons = {}
 Pages = {}
 
 local function createTabButton(name, idx)
     local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0, 120, 0, 35)
-    btn.Position = UDim2.new(0, 10 + (idx - 1) * 130, 0, 45)
+    btn.Size = UDim2.new(0, 140, 0, 35)
+    btn.Position = UDim2.new(0, 10 + (idx - 1) * 150, 0, 45)
     btn.Text = name
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 20
@@ -217,25 +217,31 @@ do
             -- تطبيق خصائص الهاكات بشكل مبسط
             if option.Name == "Speed Hack" then
                 if options[i].State then
-                    LocalPlayer.Character.Humanoid.WalkSpeed = 50
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 50
+                    end
                     createNotification("Speed Hack مفعل")
                 else
-                    LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                    end
                     createNotification("Speed Hack معطل")
                 end
             elseif option.Name == "Jump Boost" then
                 if options[i].State then
-                    LocalPlayer.Character.Humanoid.JumpPower = 100
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        LocalPlayer.Character.Humanoid.JumpPower = 100
+                    end
                     createNotification("Jump Boost مفعل")
                 else
-                    LocalPlayer.Character.Humanoid.JumpPower = 50
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        LocalPlayer.Character.Humanoid.JumpPower = 50
+                    end
                     createNotification("Jump Boost معطل")
                 end
             elseif option.Name == "Fly Mode" then
-                -- Fly Mode سيتم التحكم فيه في قسم خاص لاحقًا أو بشكل مبسط هنا
                 if options[i].State then
-                    createNotification("Fly Mode مفعل - استخدم WASD للتحكم")
-                    -- بناء طيران مبسط
+                    createNotification("Fly Mode مفعل - استخدم WASD + Space + Ctrl للطيران")
                     flyEnabled = true
                 else
                     createNotification("Fly Mode معطل")
@@ -244,7 +250,6 @@ do
             elseif option.Name == "ESP" then
                 if options[i].State then
                     createNotification("ESP مفعل")
-                    -- كود ESP مبسط (اظهار مربع حول اللاعبين)
                     for _, plr in pairs(Players:GetPlayers()) do
                         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                             if not plr.Character:FindFirstChild("BoxESP") then
@@ -274,7 +279,7 @@ do
         toggles[i] = toggle
     end
 
-    -- Fly Mode Implementation (basic)
+    -- Fly Mode Implementation
     local flyEnabled = false
     local flySpeed = 50
     local bodyGyro, bodyVelocity
@@ -335,7 +340,7 @@ do
 end
 
 ---------------------------
--- الصفحة 2 - Bang (تحكم حركة أمام ووراء مع سرعة)
+-- الصفحة 2 - Bang (تحكم حركة ذهاب وإياب بدون دوران مع حدود المسافة)
 ---------------------------
 do
     local page = Pages[2]
@@ -378,11 +383,12 @@ do
     addUICorner(speedSlider, 14)
 
     local fillBar = Instance.new("Frame", speedSlider)
-    fillBar.Size = UDim2.new(0.2, 0, 1, 0) -- البداية 20%
-    fillBar.BackgroundColor3 = Color3.fromRGB(220, 20, 220)
+    fillBar.Size = UDim2.new(0.2, 0, 1, 0)
+    fillBar.BackgroundColor3 = Color3.fromRGB(230, 200, 255)
     addUICorner(fillBar, 14)
 
     local dragging = false
+
     speedSlider.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -398,7 +404,7 @@ do
             local relativePos = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
             local scale = relativePos / speedSlider.AbsoluteSize.X
             fillBar.Size = UDim2.new(scale, 0, 1, 0)
-            speedLabel.Text = string.format("سرعة الحركة: %.2f", scale * 5) -- السرعة من 0 إلى 5
+            speedLabel.Text = string.format("سرعة الحركة: %.2f", scale * 5)
         end
     end)
 
@@ -406,12 +412,13 @@ do
     local targetPlayer = nil
     local timeElapsed = 0
     local moveSpeed = 1
+    local maxDistance = 10 -- أقصى مسافة ذهاب وإياب مسموح بها (الوحدة)
 
     toggleBangBtn.MouseButton1Click:Connect(function()
         if bangActive then
             bangActive = false
             toggleBangBtn.Text = "تفعيل Bang"
-            createNotification("Bang تم إيقاف الحركة")
+            createNotification("تم إيقاف Bang")
             targetPlayer = nil
         else
             local inputName = targetInput.Text:lower()
@@ -426,9 +433,14 @@ do
                 createNotification("لم يتم العثور على اللاعب")
                 return
             end
+            if targetPlayer == LocalPlayer then
+                createNotification("لا يمكنك تفعيل Bang على نفسك!")
+                return
+            end
             bangActive = true
             toggleBangBtn.Text = "إيقاف Bang"
-            createNotification("Bang مفعل على " .. targetPlayer.Name)
+            timeElapsed = 0
+            createNotification("تم تفعيل Bang على "..targetPlayer.Name)
         end
     end)
 
@@ -438,13 +450,24 @@ do
             timeElapsed = timeElapsed + dt * moveSpeed
 
             local targetPos = targetPlayer.Character.HumanoidRootPart.Position
-            local offset = Vector3.new(0, 0, math.sin(timeElapsed * 5) * 3) -- حركة ذهاب وإياب 3 وحدات Z
-            -- تحريك اللاعب أمام ووراء الهدف (محور Z النسبي)
-            local newPos = targetPos + offset
+            local localHRP = LocalPlayer.Character.HumanoidRootPart
 
-            -- تحريك بسلاسة باستخدام Tween لتحسين حركة اللاعب
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.CFrame = CFrame.new(newPos.X, hrp.Position.Y, newPos.Z) * CFrame.Angles(0, hrp.Orientation.Y, 0)
+            -- نحسب اتجاه متجه أمام اللاعب الهدف (محور Z في إطار اللاعب الهدف)
+            local lookVector = (targetPlayer.Character.HumanoidRootPart.CFrame.LookVector).Unit
+            -- نستخدم دالة sin لإعطاء حركة ذهاب وإياب بين -maxDistance و +maxDistance
+            local oscillation = math.sin(timeElapsed * 5) * maxDistance
+
+            -- نحدد الموقع الجديد أمام وخلف اللاعب الهدف مع حدود المدى
+            local newPos = targetPos + (lookVector * oscillation)
+
+            -- نجعل ارتفاع اللاعب ثابت (نفس ارتفاعه الحالي)
+            newPos = Vector3.new(newPos.X, localHRP.Position.Y, newPos.Z)
+
+            -- نحرك HumanoidRootPart للموقع الجديد بسلاسة
+            localHRP.CFrame = CFrame.new(newPos, newPos + lookVector) -- بدون دوران مفرط ولا التواء
+
+        elseif not bangActive then
+            -- نضمن رجوع وضع اللاعب لوضعه الطبيعي إذا توقف الـ Bang (لا حركة إضافية)
         end
     end)
 end
@@ -524,47 +547,6 @@ do
     if success and userThumbnailUrl then
         profileImage.Image = userThumbnailUrl
     end
-end
-
----------------------------
--- الصفحة 4 - معلومات السيرفر
----------------------------
-do
-    local page = Pages[4]
-    page:ClearAllChildren()
-
-    local serverNameLabel = Instance.new("TextLabel", page)
-    serverNameLabel.Size = UDim2.new(1, -40, 0, 40)
-    serverNameLabel.Position = UDim2.new(0, 20, 0, 20)
-    serverNameLabel.BackgroundTransparency = 1
-    serverNameLabel.Font = Enum.Font.GothamBold
-    serverNameLabel.TextSize = 28
-    serverNameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    serverNameLabel.TextXAlignment = Enum.TextXAlignment.Center
-    serverNameLabel.Text = "اسم السيرفر: EL Roleplay"
-
-    local serverDescLabel = Instance.new("TextLabel", page)
-    serverDescLabel.Size = UDim2.new(1, -40, 0, 80)
-    serverDescLabel.Position = UDim2.new(0, 20, 0, 80)
-    serverDescLabel.BackgroundTransparency = 1
-    serverDescLabel.Font = Enum.Font.Gotham
-    serverDescLabel.TextSize = 20
-    serverDescLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    serverDescLabel.TextWrapped = true
-    serverDescLabel.Text = "السيرفر الخاص بلعبتك في الفايف إم.\nدعم فني وتواصل متوفر 24/7."
-
-    local playersCountLabel = Instance.new("TextLabel", page)
-    playersCountLabel.Size = UDim2.new(1, -40, 0, 30)
-    playersCountLabel.Position = UDim2.new(0, 20, 0, 170)
-    playersCountLabel.BackgroundTransparency = 1
-    playersCountLabel.Font = Enum.Font.GothamBold
-    playersCountLabel.TextSize = 24
-    playersCountLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    playersCountLabel.TextXAlignment = Enum.TextXAlignment.Center
-
-    RS.Heartbeat:Connect(function()
-        playersCountLabel.Text = "عدد اللاعبين الحاليين: " .. tostring(#Players:GetPlayers())
-    end)
 end
 
 -- إظهار المينيو
