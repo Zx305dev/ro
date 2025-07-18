@@ -190,9 +190,9 @@ do
     for i, option in ipairs(options) do
         local label = Instance.new("TextLabel", page)
         label.Size = UDim2.new(0, 200, 0, 35)
-        label.Position = UDim2.new(0, 20, 0, 20 + (i -1)*50)
+        label.Position = UDim2.new(0, 20, 0, 20 + (i - 1) * 50)
         label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(230,230,230)
+        label.TextColor3 = Color3.fromRGB(230, 230, 230)
         label.Font = Enum.Font.GothamBold
         label.TextSize = 22
         label.TextXAlignment = Enum.TextXAlignment.Left
@@ -201,18 +201,18 @@ do
 
         local toggle = Instance.new("TextButton", page)
         toggle.Size = UDim2.new(0, 80, 0, 35)
-        toggle.Position = UDim2.new(0, 230, 0, 20 + (i -1)*50)
+        toggle.Position = UDim2.new(0, 230, 0, 20 + (i - 1) * 50)
         toggle.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
         toggle.Font = Enum.Font.GothamBold
         toggle.TextSize = 20
-        toggle.TextColor3 = Color3.fromRGB(255,255,255)
+        toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
         toggle.Text = "OFF"
         addUICorner(toggle, 14)
 
         toggle.MouseButton1Click:Connect(function()
             options[i].State = not options[i].State
             toggle.Text = options[i].State and "ON" or "OFF"
-            toggle.BackgroundColor3 = options[i].State and Color3.fromRGB(0,150,70) or Color3.fromRGB(100,0,150)
+            toggle.BackgroundColor3 = options[i].State and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(100, 0, 150)
 
             -- تطبيق خصائص الهاكات بشكل مبسط
             if option.Name == "Speed Hack" then
@@ -289,16 +289,16 @@ do
             local hrp = LocalPlayer.Character.HumanoidRootPart
             if not bodyGyro then
                 bodyGyro = Instance.new("BodyGyro", hrp)
-                bodyGyro.MaxTorque = Vector3.new(1e5,1e5,1e5)
+                bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
                 bodyGyro.P = 1e4
             end
             if not bodyVelocity then
                 bodyVelocity = Instance.new("BodyVelocity", hrp)
-                bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
-                bodyVelocity.Velocity = Vector3.new(0,0,0)
+                bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
             end
             local camera = workspace.CurrentCamera
-            local moveDir = Vector3.new(0,0,0)
+            local moveDir = Vector3.new(0, 0, 0)
 
             if UIS:IsKeyDown(Enum.KeyCode.W) then
                 moveDir = moveDir + camera.CFrame.LookVector
@@ -313,18 +313,17 @@ do
                 moveDir = moveDir + camera.CFrame.RightVector
             end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then
-                moveDir = moveDir + Vector3.new(0,1,0)
+                moveDir = moveDir + Vector3.new(0, 1, 0)
             end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDir = moveDir - Vector3.new(0,1,0)
+                moveDir = moveDir - Vector3.new(0, 1, 0)
             end
 
-            moveDir = moveDir.Unit * flySpeed
-            if moveDir.Magnitude == 0 then
-                bodyVelocity.Velocity = Vector3.new(0,0,0)
-            else
-                bodyVelocity.Velocity = moveDir
+            if moveDir.Magnitude > 0 then
+                moveDir = moveDir.Unit * flySpeed
             end
+
+            bodyVelocity.Velocity = moveDir
             bodyGyro.CFrame = camera.CFrame
         else
             if bodyGyro then
@@ -340,7 +339,7 @@ do
 end
 
 ---------------------------
--- الصفحة 2 - Bang (تحكم حركة ذهاب وإياب بدون دوران مع حدود المسافة)
+-- الصفحة 2 - Bang (تحكم حركة ذهاب وإياب مع إضافة حركة جانبية صغيرة)
 ---------------------------
 do
     local page = Pages[2]
@@ -413,6 +412,7 @@ do
     local timeElapsed = 0
     local moveSpeed = 1
     local maxDistance = 10 -- أقصى مسافة ذهاب وإياب مسموح بها (الوحدة)
+    local sideAmplitude = 2 -- مقدار الحركة الجانبية الصغيرة
 
     toggleBangBtn.MouseButton1Click:Connect(function()
         if bangActive then
@@ -440,7 +440,7 @@ do
             bangActive = true
             toggleBangBtn.Text = "إيقاف Bang"
             timeElapsed = 0
-            createNotification("تم تفعيل Bang على "..targetPlayer.Name)
+            createNotification("تم تفعيل Bang على " .. targetPlayer.Name)
         end
     end)
 
@@ -449,25 +449,31 @@ do
             moveSpeed = tonumber(speedLabel.Text:match("([%d%.]+)")) or 1
             timeElapsed = timeElapsed + dt * moveSpeed
 
-            local targetPos = targetPlayer.Character.HumanoidRootPart.Position
+            local targetHRP = targetPlayer.Character.HumanoidRootPart
             local localHRP = LocalPlayer.Character.HumanoidRootPart
 
-            -- نحسب اتجاه متجه أمام اللاعب الهدف (محور Z في إطار اللاعب الهدف)
-            local lookVector = (targetPlayer.Character.HumanoidRootPart.CFrame.LookVector).Unit
-            -- نستخدم دالة sin لإعطاء حركة ذهاب وإياب بين -maxDistance و +maxDistance
+            -- الحصول على اتجاه النظر أمام اللاعب الهدف (محور Z)
+            local lookVector = targetHRP.CFrame.LookVector.Unit
+
+            -- الحصول على اتجاه جانبي (يمين اللاعب الهدف، محور X)
+            local rightVector = targetHRP.CFrame.RightVector.Unit
+
+            -- حركة ذهاب وإياب أمام وخلف اللاعب الهدف (مثل الأصلي)
             local oscillation = math.sin(timeElapsed * 5) * maxDistance
 
-            -- نحدد الموقع الجديد أمام وخلف اللاعب الهدف مع حدود المدى
-            local newPos = targetPos + (lookVector * oscillation)
+            -- حركة جانبية صغيرة (حركة ذهاب وإياب أقل تردداً وسرعة)
+            local sideOscillation = math.sin(timeElapsed * 2) * sideAmplitude
 
-            -- نجعل ارتفاع اللاعب ثابت (نفس ارتفاعه الحالي)
+            -- تحديد الموقع الجديد مع إضافة حركة ذهاب وإياب + حركة جانبية
+            local newPos = targetHRP.Position + (lookVector * oscillation) + (rightVector * sideOscillation)
+
+            -- الحفاظ على ارتفاع اللاعب كما هو
             newPos = Vector3.new(newPos.X, localHRP.Position.Y, newPos.Z)
 
-            -- نحرك HumanoidRootPart للموقع الجديد بسلاسة
-            localHRP.CFrame = CFrame.new(newPos, newPos + lookVector) -- بدون دوران مفرط ولا التواء
-
+            -- تحريك HumanoidRootPart بسلاسة (بدون دوران مفرط)
+            localHRP.CFrame = CFrame.new(newPos, newPos + lookVector)
         elseif not bangActive then
-            -- نضمن رجوع وضع اللاعب لوضعه الطبيعي إذا توقف الـ Bang (لا حركة إضافية)
+            -- يمكن هنا إضافة إعادة الوضع الطبيعي إذا أردت
         end
     end)
 end
