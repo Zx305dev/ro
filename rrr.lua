@@ -1,4 +1,4 @@
--- Elite V5 PRO 2025 - سكربت Face Bang بطيء مع تعديل موقع اللاعب: فوق، قدام، وورا مع ON/OFF + تحديث معلومات كاملة
+-- Elite V5 PRO 2025 - Face Bang مع تحسين: تحديد موقع فوق الرأس بين الأرجل و Torso + تفعيل noclip تلقائي أثناء Face Bang + واجهة متكاملة
 
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local MarketplaceService = game:GetService("MarketplaceService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -52,6 +51,40 @@ local function makeDraggable(frame)
     end)
 end
 
+local function createNotification(text)
+    local notifGui = Instance.new("ScreenGui")
+    notifGui.Name = "NotifGui"
+    notifGui.Parent = game.CoreGui
+
+    local frameNotif = Instance.new("Frame", notifGui)
+    frameNotif.Size = UDim2.new(0, 300, 0, 50)
+    frameNotif.Position = UDim2.new(0.5, -150, 0.9, 0)
+    frameNotif.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
+    frameNotif.BorderSizePixel = 0
+    addUICorner(frameNotif, 20)
+
+    local labelNotif = Instance.new("TextLabel", frameNotif)
+    labelNotif.Size = UDim2.new(1, -20, 1, 0)
+    labelNotif.Position = UDim2.new(0, 10, 0, 0)
+    labelNotif.BackgroundTransparency = 1
+    labelNotif.Text = text
+    labelNotif.TextColor3 = Color3.new(1, 1, 1)
+    labelNotif.Font = Enum.Font.GothamBold
+    labelNotif.TextSize = 20
+    labelNotif.TextXAlignment = Enum.TextXAlignment.Left
+
+    TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+
+    task.delay(4, function()
+        TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        task.wait(0.5)
+        notifGui:Destroy()
+    end)
+end
+
+-- إنشاء الواجهة الرئيسية
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
 frame.Size = UDim2.new(0, 520, 0, 580)
@@ -71,7 +104,7 @@ header.BorderSizePixel = 0
 addUICorner(header, 18)
 
 local title = Instance.new("TextLabel", header)
-title.Text = "Elite V5 PRO | متكامل 2025"
+title.Text = "Elite V5 PRO | Face Bang متكامل 2025"
 title.Size = UDim2.new(0.75, 0, 1, 0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
@@ -248,58 +281,59 @@ do
         local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             local healthPercent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
-            healthBar.fill:TweenSize(UDim2.new(healthPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
-
-            local speedPercent = math.clamp(humanoid.WalkSpeed / 30, 0, 1)
-            speedBar.fill:TweenSize(UDim2.new(speedPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
-
-            local energyPercent = 0.75
-            energyBar.fill:TweenSize(UDim2.new(energyPercent, 0, 1, 0), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.4, true)
+            healthBar.fill.Size = UDim2.new(healthPercent * 0.7, 0, 1, 0)
         else
             healthBar.fill.Size = UDim2.new(0, 0, 1, 0)
-            speedBar.fill.Size = UDim2.new(0, 0, 1, 0)
-            energyBar.fill.Size = UDim2.new(0, 0, 1, 0)
         end
+
+        local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            local vel = rootPart.Velocity.Magnitude
+            local speedPercent = math.clamp(vel / 50, 0, 1)
+            speedBar.fill.Size = UDim2.new(speedPercent * 0.7, 0, 1, 0)
+        else
+            speedBar.fill.Size = UDim2.new(0, 0, 1, 0)
+        end
+
+        -- نفترض أن الطاقة مقدار ثابت مؤقتاً
+        energyBar.fill.Size = UDim2.new(0.5 * 0.7, 0, 1, 0)
     end
 
     spawn(function()
         while EliteMenu.Parent do
             updatePlayerInfo()
-            profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
             task.wait(0.5)
         end
     end)
-
-    playerNameLabel.Parent = playerInfoFrame
-    levelLabel.Parent = playerInfoFrame
 end
 
--- ======= صفحة معلومات السيرفر مع تحديث تلقائي ======= --
+-- ======= صفحة معلومات السيرفر المتجددة ======= --
 do
     local page = pages["معلومات السيرفر"]
 
     local infoText = Instance.new("TextLabel", page)
-    infoText.Size = UDim2.new(0.95, 0, 0.9, 0)
-    infoText.Position = UDim2.new(0.025, 0, 0.05, 0)
-    infoText.BackgroundColor3 = Color3.fromRGB(90, 0, 180)
+    infoText.Size = UDim2.new(0.95, 0, 1, 0)
+    infoText.Position = UDim2.new(0.025, 0, 0, 0)
+    infoText.BackgroundTransparency = 1
     infoText.TextColor3 = Color3.new(1, 1, 1)
     infoText.Font = Enum.Font.GothamBold
     infoText.TextSize = 18
     infoText.TextWrapped = true
-    infoText.TextXAlignment = Enum.TextXAlignment.Left
     infoText.TextYAlignment = Enum.TextYAlignment.Top
-    infoText.BorderSizePixel = 0
-    addUICorner(infoText, 18)
+    infoText.TextXAlignment = Enum.TextXAlignment.Left
+
+    local startTime = os.time()
+    local maxPlayers = 50 -- مثال ثابت
 
     local function updateServerInfo()
-        local serverName = game:GetService("NetworkServer") and "Local Server" or "Roblox Server" -- مجرد مثال للتغيير
+        local serverName = "Roblox Server" -- يمكن تغيير هذا لاسم السيرفر الحقيقي
         local playerCount = #Players:GetPlayers()
-        local maxPlayers = 50 -- يمكنك تغييره حسب سيرفرك
+        local uptime = os.date("!%H:%M:%S", os.time() - startTime)
         local fps = math.floor(1 / task.wait(0))
         local placeId = game.PlaceId
 
-        infoText.Text = ("معلومات السيرفر:\n\nاسم السيرفر: %s\nعدد اللاعبين: %d/%d\nوقت اللعب: %s\nمعرف الخريطة: %d\nFPS تقريبي: %d")
-            :format(serverName, playerCount, maxPlayers, os.date("%X"), placeId, fps)
+        infoText.Text = ("معلومات السيرفر:\n\nاسم السيرفر: %s\nعدد اللاعبين: %d / %d\nمدة التشغيل: %s\nمعرف الخريطة: %d\nFPS تقريبي: %d")
+            :format(serverName, playerCount, maxPlayers, uptime, placeId, fps)
     end
 
     spawn(function()
@@ -310,7 +344,7 @@ do
     end)
 end
 
--- ======= صفحة 18+ مع Face Bang بطيء مع تحريك اللاعب فوق، أمام، ووراء مع On/Off ======= --
+-- ======= صفحة 18+ Face Bang مع تحسين noclip وحركة بطيئة مع رفع اللاعب فوق الرأس بين الأرجل و Torso ======= --
 do
     local page = pages["18+"]
 
@@ -369,9 +403,23 @@ do
     btnOff.TextColor3 = Color3.new(1, 1, 1)
     addUICorner(btnOff, 14)
 
+    local noclipEnabled = false
     local faceBangRunning = false
     local faceBangConnection
 
+    -- تفعيل وتعطيل noclip (تعطيل تصادم)
+    local function toggleNoclip(state)
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not state
+            end
+        end
+        noclipEnabled = state
+    end
+
+    -- دالة Face Bang محسنة: موقع فوق الرأس بين الأرجل وTorso
     local function faceBang(targetPlayer)
         if faceBangRunning then
             statusLabel.Text = "الحالة: Face Bang شغال بالفعل"
@@ -391,23 +439,28 @@ do
         local hrpLocal = localChar.HumanoidRootPart
         local targetChar = targetPlayer.Character
         local hrpTarget = targetChar:FindFirstChild("HumanoidRootPart")
-        local headTarget = targetChar:FindFirstChild("Head")
-        if not hrpTarget or not headTarget then
-            statusLabel.Text = "الحالة: لا يمكن الوصول إلى أجزاء جسم الهدف"
+        local torsoTarget = targetChar:FindFirstChild("Torso") or targetChar:FindFirstChild("UpperTorso")
+        local rootPartTarget = targetChar:FindFirstChild("HumanoidRootPart")
+        if not hrpTarget or not torsoTarget or not rootPartTarget then
+            statusLabel.Text = "الحالة: لا يمكن الوصول إلى أجزاء جسم الهدف المطلوبة"
             return
         end
 
         faceBangRunning = true
         statusLabel.Text = "الحالة: بدأ Face Bang على " .. targetPlayer.Name
 
+        -- تفعيل noclip لتجنب التصادمات أثناء Face Bang
+        toggleNoclip(true)
+
         local toggle = true
         local count = 0
-        local speed = 0.2 -- بطيء جداً
+        local speed = 0.25 -- حركة بطيئة (ربع ثانية بين كل حركة)
 
         faceBangConnection = RunService.RenderStepped:Connect(function(dt)
             if not faceBangRunning then
                 faceBangConnection:Disconnect()
                 statusLabel.Text = "الحالة: تم إيقاف Face Bang"
+                toggleNoclip(false) -- إيقاف noclip
                 return
             end
 
@@ -415,20 +468,28 @@ do
             if count < speed then return end
             count = 0
 
-            -- تعديل الموقع: فوق (1.2 studs) + أمام (1.5 studs) ووراء (0.3 studs)
-            local targetCFrame = headTarget.CFrame
-            local upOffset = Vector3.new(0, 1.2, 0)
-            local forwardOffset = targetCFrame.LookVector * 1.5
-            local backOffset = targetCFrame.LookVector * -0.3
+            -- احصل على موضع بين الأرجل (HumanoidRootPart) وال torso (Torso or UpperTorso)
+            local rootPos = rootPartTarget.Position
+            local torsoPos = torsoTarget.Position
+
+            -- نأخذ نقطة وسطية بين HumanoidRootPart وTorso
+            local midPos = (rootPos + torsoPos) / 2
+            local upOffset = Vector3.new(0, 1.3, 0) -- رفع اللاعب المحلي فوق نقطة الوسط قليلاً
+
+            -- اتجاه النظر (من رأس الهدف)
+            local lookVector = (torsoTarget.CFrame * CFrame.new(0, 0, -1)).LookVector
+
+            local forwardOffset = lookVector * 1.5
+            local backOffset = lookVector * -0.3
 
             local newPos
             if toggle then
-                newPos = targetCFrame.Position + upOffset + forwardOffset
+                newPos = midPos + upOffset + forwardOffset
             else
-                newPos = targetCFrame.Position + upOffset + backOffset
+                newPos = midPos + upOffset + backOffset
             end
 
-            hrpLocal.CFrame = CFrame.new(newPos, targetCFrame.Position)
+            hrpLocal.CFrame = CFrame.new(newPos, midPos + upOffset)
 
             toggle = not toggle
         end)
@@ -472,12 +533,11 @@ do
     end)
 end
 
--- زر الإغلاق
+-- أزرار الإغلاق والتصغير مع انيميشن
 closeBtn.MouseButton1Click:Connect(function()
     EliteMenu:Destroy()
 end)
 
--- زر التصغير والتوسيع مع أنيميشن
 local minimized = false
 minimizeBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -496,39 +556,5 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- إشعار ترحيبي
-local function showNotification(text)
-    local notifGui = Instance.new("ScreenGui")
-    notifGui.Name = "NotifGui"
-    notifGui.Parent = game.CoreGui
-
-    local frameNotif = Instance.new("Frame", notifGui)
-    frameNotif.Size = UDim2.new(0, 300, 0, 50)
-    frameNotif.Position = UDim2.new(0.5, -150, 0.9, 0)
-    frameNotif.BackgroundColor3 = Color3.fromRGB(100, 0, 200)
-    frameNotif.BorderSizePixel = 0
-    addUICorner(frameNotif, 20)
-
-    local labelNotif = Instance.new("TextLabel", frameNotif)
-    labelNotif.Size = UDim2.new(1, -20, 1, 0)
-    labelNotif.Position = UDim2.new(0, 10, 0, 0)
-    labelNotif.BackgroundTransparency = 1
-    labelNotif.Text = text
-    labelNotif.TextColor3 = Color3.new(1, 1, 1)
-    labelNotif.Font = Enum.Font.GothamBold
-    labelNotif.TextSize = 20
-    labelNotif.TextXAlignment = Enum.TextXAlignment.Left
-
-    TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
-    TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
-
-    task.delay(4, function()
-        TweenService:Create(frameNotif, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-        TweenService:Create(labelNotif, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-        task.wait(0.5)
-        notifGui:Destroy()
-    end)
-end
-
-showNotification("مرحبا بك في Elite V5 PRO | 2025 | متكامل ومحسن مع Face Bang بطيء!")
+createNotification("مرحبا بك في Elite V5 PRO | Face Bang مع noclip وتحسينات متكاملة 2025!")
 
