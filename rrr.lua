@@ -1,444 +1,196 @@
--- Full Elite Bang System + Noclip + Restricted WASD Movement + GUI Menu
--- تم تحديث السكربت ليكون كامل وقوي بدون Bugs او أخطاء
--- Author: ChatGPT v2 for FNLOXER
---DIDDY
+--[[  
+	🌌 Elite Hack System 2025 - Final Edition
+	🟣 Theme: Purple | ✨ Pages UI | 😈 Full Bang + Utilities
+	🛡️ Stable. Modular. No Errors.
+	Made by: Alm6eri 🔥🔥  
+]]
 
-
+-- Services
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RS = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local LP = Players.LocalPlayer
+local Mouse = LP:GetMouse()
+local Camera = workspace.CurrentCamera
 
--- إعداد الألوان للواجهة
-local COLORS = {
-    background = Color3.fromRGB(25, 25, 30),
-    darkBackground = Color3.fromRGB(15, 15, 20),
-    purple = Color3.fromRGB(130, 90, 220),
-    green = Color3.fromRGB(80, 200, 120),
-    red = Color3.fromRGB(220, 50, 50),
-    white = Color3.new(1,1,1)
-}
+-- Variables
+local BangTarget = nil
+local BangActive = false
+local NoclipActive = false
+local FlyActive = false
+local SpeedActive = false
+local JumpBoost = false
+local FlySpeed = 2
+local UI = Instance.new("ScreenGui", game.CoreGui)
+UI.Name = "EliteSystem2025_UI"
 
--- إنشاء واجهة المستخدم (ScreenGui)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EliteBangMenu"
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
--- دالة لإنشاء زوايا مدورة
-local function addUICorner(inst, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 10)
-    c.Parent = inst
+-- GUI Setup
+function CreateButton(text, parent, callback)
+	local btn = Instance.new("TextButton", parent)
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.Text = text
+	btn.BackgroundColor3 = Color3.fromRGB(90, 30, 140)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamSemibold
+	btn.TextSize = 14
+	btn.MouseButton1Click:Connect(callback)
+	return btn
 end
 
--- النافذة الرئيسية للمينيو
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 420, 0, 370)
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -185)
-mainFrame.BackgroundColor3 = COLORS.background
-addUICorner(mainFrame, 15)
-mainFrame.Parent = ScreenGui
-mainFrame.Active = true
-mainFrame.Draggable = true
+-- Main Frame
+local MainFrame = Instance.new("Frame", UI)
+MainFrame.Size = UDim2.new(0, 400, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 0, 60)
+MainFrame.BorderSizePixel = 0
 
--- تبويبات القائمة (صفحة واحدة حالياً - Bang System)
-local tabs = {"Bang System"}
-local pages = {}
-local currentPage = 1
+local UIStroke = Instance.new("UIStroke", MainFrame)
+UIStroke.Color = Color3.fromRGB(150, 0, 255)
+UIStroke.Thickness = 2
 
--- أزرار التبويب
-local tabButtons = {}
-for i, tabName in ipairs(tabs) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 140, 0, 40)
-    btn.Position = UDim2.new(0, (i-1)*150 + 20, 0, 15)
-    btn.BackgroundColor3 = COLORS.purple
-    btn.Text = tabName
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 18
-    btn.TextColor3 = COLORS.white
-    addUICorner(btn, 12)
-    btn.Parent = mainFrame
-    tabButtons[i] = btn
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundTransparency = 1
+Title.Text = "Elite Hack System 2025 | by Alm6eri"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Page container
+local Pages = {}
+local TabFrame = Instance.new("Frame", MainFrame)
+TabFrame.Size = UDim2.new(0, 120, 1, -40)
+TabFrame.Position = UDim2.new(0, 0, 0, 40)
+TabFrame.BackgroundColor3 = Color3.fromRGB(30, 0, 40)
+
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, -120, 1, -40)
+ContentFrame.Position = UDim2.new(0, 120, 0, 40)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(60, 0, 100)
+
+-- Pages
+local function CreatePage(name)
+	local btn = CreateButton(name, TabFrame, function()
+		for _, v in pairs(Pages) do v.Visible = false end
+		Pages[name].Visible = true
+	end)
+	local frame = Instance.new("Frame", ContentFrame)
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.BackgroundTransparency = 1
+	frame.Visible = false
+	Pages[name] = frame
 end
 
--- دالة تفعيل الصفحة الحالية
-local function setActivePage(index)
-    for i, page in ipairs(pages) do
-        page.Visible = (i == index)
-        tabButtons[i].BackgroundColor3 = (i == index) and COLORS.green or COLORS.purple
-    end
-    currentPage = index
-end
+-- Bang Page
+CreatePage("Bang")
+CreatePage("Player")
+CreatePage("Info")
 
--- صفحة Bang System
+-- Bang Tab
 do
-    local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -40, 1, -70)
-    page.Position = UDim2.new(0, 20, 0, 70)
-    page.BackgroundColor3 = COLORS.darkBackground
-    addUICorner(page, 15)
-    page.Parent = mainFrame
-    page.Visible = false
-    pages[1] = page
+	local page = Pages["Bang"]
 
-    -- Dropdown اختيار هدف اللاعب
-    local targetDropdown = Instance.new("TextButton")
-    targetDropdown.Size = UDim2.new(0, 180, 0, 40)
-    targetDropdown.Position = UDim2.new(0, 20, 0, 20)
-    targetDropdown.BackgroundColor3 = COLORS.purple
-    targetDropdown.Text = "اختر هدف"
-    targetDropdown.Font = Enum.Font.GothamBold
-    targetDropdown.TextSize = 18
-    targetDropdown.TextColor3 = COLORS.white
-    addUICorner(targetDropdown, 10)
-    targetDropdown.Parent = page
+	local dropdown = Instance.new("TextBox", page)
+	dropdown.Size = UDim2.new(0.8, 0, 0, 30)
+	dropdown.Position = UDim2.new(0.1, 0, 0.05, 0)
+	dropdown.PlaceholderText = "Enter Player Name"
+	dropdown.Text = ""
+	dropdown.BackgroundColor3 = Color3.fromRGB(90, 0, 130)
+	dropdown.TextColor3 = Color3.new(1, 1, 1)
 
-    local dropdownList = Instance.new("ScrollingFrame")
-    dropdownList.Size = UDim2.new(0, 180, 0, 160)
-    dropdownList.Position = UDim2.new(0, 20, 0, 65)
-    dropdownList.BackgroundColor3 = COLORS.background
-    dropdownList.BorderSizePixel = 0
-    dropdownList.Visible = false
-    addUICorner(dropdownList, 10)
-    dropdownList.Parent = page
+	CreateButton("Activate Bang", page, function()
+		local target = Players:FindFirstChild(dropdown.Text)
+		if target and target.Character then
+			BangTarget = target
+			BangActive = true
+			NoclipActive = true
+		end
+	end).Position = UDim2.new(0.1, 0, 0.2, 0)
 
-    -- تحديث قائمة اللاعبين داخل Dropdown
-    local function refreshDropdown()
-        dropdownList:ClearAllChildren()
-        local y = 0
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                local btn = Instance.new("TextButton")
-                btn.Size = UDim2.new(1, 0, 0, 35)
-                btn.Position = UDim2.new(0, 0, 0, y)
-                btn.BackgroundColor3 = COLORS.purple
-                btn.Text = plr.Name
-                btn.Font = Enum.Font.GothamBold
-                btn.TextSize = 18
-                btn.TextColor3 = COLORS.white
-                addUICorner(btn, 8)
-                btn.Parent = dropdownList
-                y = y + 40
-                btn.MouseButton1Click:Connect(function()
-                    targetDropdown.Text = btn.Text
-                    dropdownList.Visible = false
-                end)
-            end
-        end
-        dropdownList.CanvasSize = UDim2.new(0, 0, 0, y)
-    end
-
-    targetDropdown.MouseButton1Click:Connect(function()
-        dropdownList.Visible = not dropdownList.Visible
-        if dropdownList.Visible then refreshDropdown() end
-    end)
-
-    -- مربعات النص لسرعة التذبذب والمسافة
-    local speedLabel = Instance.new("TextLabel")
-    speedLabel.Size = UDim2.new(0, 200, 0, 25)
-    speedLabel.Position = UDim2.new(0, 20, 0, 240)
-    speedLabel.BackgroundTransparency = 1
-    speedLabel.Text = "سرعة التذبذب: 1.5"
-    speedLabel.Font = Enum.Font.GothamBold
-    speedLabel.TextSize = 20
-    speedLabel.TextColor3 = COLORS.white
-    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
-    speedLabel.Parent = page
-
-    local speedBox = Instance.new("TextBox")
-    speedBox.Size = UDim2.new(0, 80, 0, 25)
-    speedBox.Position = UDim2.new(0, 230, 0, 240)
-    speedBox.BackgroundColor3 = COLORS.background
-    speedBox.Text = "1.5"
-    speedBox.TextColor3 = COLORS.white
-    speedBox.Font = Enum.Font.GothamBold
-    speedBox.TextSize = 20
-    addUICorner(speedBox, 8)
-    speedBox.ClearTextOnFocus = false
-    speedBox.Parent = page
-
-    local distLabel = Instance.new("TextLabel")
-    distLabel.Size = UDim2.new(0, 200, 0, 25)
-    distLabel.Position = UDim2.new(0, 20, 0, 275)
-    distLabel.BackgroundTransparency = 1
-    distLabel.Text = "المسافة من الهدف: 3.5"
-    distLabel.Font = Enum.Font.GothamBold
-    distLabel.TextSize = 20
-    distLabel.TextColor3 = COLORS.white
-    distLabel.TextXAlignment = Enum.TextXAlignment.Left
-    distLabel.Parent = page
-
-    local distBox = Instance.new("TextBox")
-    distBox.Size = UDim2.new(0, 80, 0, 25)
-    distBox.Position = UDim2.new(0, 230, 0, 275)
-    distBox.BackgroundColor3 = COLORS.background
-    distBox.Text = "3.5"
-    distBox.TextColor3 = COLORS.white
-    distBox.Font = Enum.Font.GothamBold
-    distBox.TextSize = 20
-    addUICorner(distBox, 8)
-    distBox.ClearTextOnFocus = false
-    distBox.Parent = page
-
-    -- أزرار تشغيل وإيقاف Bang
-    local startBtn = Instance.new("TextButton")
-    startBtn.Size = UDim2.new(0, 180, 0, 45)
-    startBtn.Position = UDim2.new(0, 20, 0, 310)
-    startBtn.BackgroundColor3 = COLORS.green
-    startBtn.Text = "تشغيل Bang + Noclip"
-    startBtn.Font = Enum.Font.GothamBold
-    startBtn.TextSize = 22
-    startBtn.TextColor3 = COLORS.white
-    addUICorner(startBtn, 12)
-    startBtn.Parent = page
-
-    local stopBtn = Instance.new("TextButton")
-    stopBtn.Size = UDim2.new(0, 180, 0, 45)
-    stopBtn.Position = UDim2.new(0, 220, 0, 310)
-    stopBtn.BackgroundColor3 = COLORS.red
-    stopBtn.Text = "إيقاف Bang"
-    stopBtn.Font = Enum.Font.GothamBold
-    stopBtn.TextSize = 22
-    stopBtn.TextColor3 = COLORS.white
-    addUICorner(stopBtn, 12)
-    stopBtn.Parent = page
-
-    -- متغيرات Bang و Noclip
-    local BangActive = false
-    local TargetPlayer = nil
-    local OSCILLATION_FREQUENCY = 1.5
-    local OSCILLATION_AMPLITUDE = 1
-    local BASE_FOLLOW_DISTANCE = 3.5
-
-    -- متغير تخزين حالة تحكم حركة اللاعب (W/S فقط)
-    local moveInput = {
-        forward = false,
-        backward = false,
-    }
-
-    -- دالة تعطيل تفعيل Noclip (تفعيل/تعطيل التصادم)
-    local function SetNoclip(enabled)
-        local char = LocalPlayer.Character
-        if not char then return end
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = not enabled
-            end
-        end
-    end
-
-    -- دالة للبحث عن لاعب بواسطة الاسم
-    local function GetPlayerByName(name)
-        name = name:lower()
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr.Name:lower():find(name) then
-                return plr
-            end
-        end
-        return nil
-    end
-
-    -- إشعارات على الشاشة
-    local function createNotification(text, duration)
-        local notif = Instance.new("TextLabel")
-        notif.Size = UDim2.new(0, 300, 0, 45)
-        notif.Position = UDim2.new(0.5, -150, 0, 50)
-        notif.BackgroundColor3 = COLORS.purple
-        notif.TextColor3 = COLORS.white
-        notif.Font = Enum.Font.GothamBold
-        notif.TextSize = 22
-        notif.Text = text
-        notif.BackgroundTransparency = 0.2
-        notif.Parent = ScreenGui
-
-        local tweenIn = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 100), BackgroundTransparency = 0})
-        tweenIn:Play()
-
-        delay(duration or 3, function()
-            local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 50), BackgroundTransparency = 1})
-            tweenOut:Play()
-            tweenOut.Completed:Wait()
-            notif:Destroy()
-        end)
-    end
-
-    -- تحديث القيم من مربعات النص
-    local function UpdateSpeed()
-        local val = tonumber(speedBox.Text)
-        if val and val > 0 and val <= 10 then
-            OSCILLATION_FREQUENCY = val
-            speedLabel.Text = "سرعة التذبذب: " .. tostring(val)
-        else
-            speedBox.Text = tostring(OSCILLATION_FREQUENCY)
-            createNotification("الرجاء إدخال رقم بين 0.1 و 10 للسرعة", 3)
-        end
-    end
-
-    local function UpdateDistance()
-        local val = tonumber(distBox.Text)
-        if val and val >= 1 and val <= 20 then
-            BASE_FOLLOW_DISTANCE = val
-            distLabel.Text = "المسافة من الهدف: " .. tostring(val)
-        else
-            distBox.Text = tostring(BASE_FOLLOW_DISTANCE)
-            createNotification("الرجاء إدخال رقم بين 1 و 20 للمسافة", 3)
-        end
-    end
-
-    speedBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then UpdateSpeed() end
-    end)
-    distBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then UpdateDistance() end
-    end)
-
-    -- التحكم بحركة اللاعب (تقييد W/S فقط)
-    UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if BangActive then
-            if input.KeyCode == Enum.KeyCode.W then
-                moveInput.forward = true
-            elseif input.KeyCode == Enum.KeyCode.S then
-                moveInput.backward = true
-            end
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if BangActive then
-            if input.KeyCode == Enum.KeyCode.W then
-                moveInput.forward = false
-            elseif input.KeyCode == Enum.KeyCode.S then
-                moveInput.backward = false
-            end
-        end
-    end)
-
-    -- متابعة الهدف مع حركة محدودة ضمن المسافة
-    local function FollowTarget()
-        if not BangActive or not TargetPlayer then return end
-        if not TargetPlayer.Character then return end
-        if not LocalPlayer.Character then return end
-
-        local targetHRP = TargetPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local localHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not targetHRP or not localHRP then return end
-
-        local lookVector = targetHRP.CFrame.LookVector
-        local posBase = targetHRP.Position - lookVector * BASE_FOLLOW_DISTANCE
-
-        -- تذبذب عمودي ناعم
-        local oscillation = math.sin(tick() * OSCILLATION_FREQUENCY * math.pi * 2) * OSCILLATION_AMPLITUDE
-        local desiredPos = posBase + Vector3.new(0, oscillation, 0)
-
-        -- حركة أمام وخلف بناءً على WASD (مقيدة)
-        local moveDirection = Vector3.new(0, 0, 0)
-        if moveInput.forward then
-            moveDirection = moveDirection + lookVector
-        end
-        if moveInput.backward then
-            moveDirection = moveDirection - lookVector
-        end
-
-        local moveSpeed = 7
-
-        -- حساب المسافة الحالية بين اللاعب والهدف على محور LookVector
-        local vectorToPlayer = localHRP.Position - targetHRP.Position
-        local projectedLength = vectorToPlayer:Dot(lookVector)
-
-        local maxDistance = BASE_FOLLOW_DISTANCE + 1 -- الحد الأعلى
-        local minDistance = BASE_FOLLOW_DISTANCE - 1 -- الحد الأدنى
-
-        -- منع تجاوز الحد الأمامي أو الخلفي
-        if moveInput.forward and projectedLength > maxDistance then
-            moveDirection = Vector3.new(0, 0, 0)
-        elseif moveInput.backward and projectedLength < minDistance then
-            moveDirection = Vector3.new(0, 0, 0)
-        end
-
-        -- دمج الحركة مع التذبذب
-        desiredPos = desiredPos + moveDirection * moveSpeed * RS.RenderStepped:Wait()
-
-        -- تحريك HumanoidRootPart بسلاسة نحو الموقع الجديد
-        local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(localHRP, tweenInfo, {CFrame = CFrame.new(desiredPos, targetHRP.Position)})
-        tween:Play()
-    end
-
-    -- وظيفة بدء Bang مع تفعيل Noclip
-    local function StartBang(targetName)
-        if BangActive then
-            createNotification("Bang مفعل بالفعل!", 3)
-            return
-        end
-        local plr = GetPlayerByName(targetName)
-        if not plr then
-            createNotification("لم يتم العثور على اللاعب: "..targetName, 3)
-            return
-        end
-        if plr == LocalPlayer then
-            createNotification("لا يمكنك اختيار نفسك!", 3)
-            return
-        end
-        TargetPlayer = plr
-        BangActive = true
-        SetNoclip(true)
-        createNotification("تم تفعيل Bang على "..plr.Name, 3)
-    end
-
-    -- إيقاف Bang وإلغاء Noclip
-    local function StopBang()
-        if not BangActive then
-            createNotification("Bang غير مفعل", 3)
-            return
-        end
-        BangActive = false
-        TargetPlayer = nil
-        SetNoclip(false)
-        moveInput.forward = false
-        moveInput.backward = false
-        createNotification("تم إيقاف Bang وإعادة التحكم", 3)
-    end
-
-    startBtn.MouseButton1Click:Connect(function()
-        UpdateSpeed()
-        UpdateDistance()
-        StartBang(targetDropdown.Text)
-    end)
-
-    stopBtn.MouseButton1Click:Connect(StopBang)
-
-    -- تشغيل الفانكشن بشكل دائم خلال الإطار الحالي للعبة
-    RS.RenderStepped:Connect(function()
-        if BangActive then
-            FollowTarget()
-        end
-    end)
+	CreateButton("Deactivate", page, function()
+		BangActive = false
+		NoclipActive = false
+	end).Position = UDim2.new(0.1, 0, 0.3, 0)
 end
 
--- تعيين الصفحة الأولى مفعلة
-setActivePage(1)
+-- Player Hacks Page
+do
+	local page = Pages["Player"]
+	CreateButton("Fly Toggle", page, function()
+		FlyActive = not FlyActive
+	end)
 
--- ربط أزرار التبويب للصفحات (لو صار أكثر من صفحة بالمستقبل)
-for i, btn in ipairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        setActivePage(i)
-    end)
+	CreateButton("Speed Boost", page, function()
+		SpeedActive = not SpeedActive
+	end)
+
+	CreateButton("Jump Boost", page, function()
+		JumpBoost = not JumpBoost
+	end)
+
+	CreateButton("Toggle Noclip", page, function()
+		NoclipActive = not NoclipActive
+	end)
+
+	CreateButton("Close UI", page, function()
+		UI:Destroy()
+	end)
 end
 
--- إظهار/إخفاء المينيو بالزر (مثلاً F1)
-local menuVisible = true
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F1 then
-        menuVisible = not menuVisible
-        ScreenGui.Enabled = menuVisible
-    end
+-- Info Page
+do
+	local page = Pages["Info"]
+	local lbl1 = Instance.new("TextLabel", page)
+	lbl1.Text = "Player: " .. LP.Name
+	lbl1.Size = UDim2.new(1, 0, 0, 30)
+	lbl1.BackgroundTransparency = 1
+	lbl1.TextColor3 = Color3.new(1, 1, 1)
+
+	local lbl2 = Instance.new("TextLabel", page)
+	lbl2.Text = "Game: " .. tostring(game.Name or "Unknown")
+	lbl2.Position = UDim2.new(0, 0, 0.1, 0)
+	lbl2.Size = UDim2.new(1, 0, 0, 30)
+	lbl2.BackgroundTransparency = 1
+	lbl2.TextColor3 = Color3.new(1, 1, 1)
+end
+
+-- Movement Logic
+RunService.RenderStepped:Connect(function()
+	if BangActive and BangTarget and BangTarget.Character and LP.Character then
+		local you = LP.Character:FindFirstChild("HumanoidRootPart")
+		local them = BangTarget.Character:FindFirstChild("HumanoidRootPart")
+		if you and them then
+			local offset = Vector3.new(0, 0, -2 + math.sin(tick() * 3))
+			you.CFrame = them.CFrame * CFrame.new(offset)
+		end
+	end
+
+	if NoclipActive and LP.Character then
+		for _, part in pairs(LP.Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+
+	if FlyActive and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+		local HRP = LP.Character.HumanoidRootPart
+		HRP.Velocity = Camera.CFrame.LookVector * FlySpeed * 10
+	end
+
+	if SpeedActive and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+		LP.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 50
+	else
+		if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+			LP.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+		end
+	end
+
+	if JumpBoost and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+		LP.Character:FindFirstChildOfClass("Humanoid").JumpPower = 120
+	else
+		if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+			LP.Character:FindFirstChildOfClass("Humanoid").JumpPower = 50
+		end
+	end
 end)
-
--- رسالة ترحيب مبسطة عند تشغيل السكربت
-print("[Elite Bang System] Loaded and Ready! اضغط F1 لفتح القائمة.")
-
