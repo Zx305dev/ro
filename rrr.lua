@@ -1,8 +1,8 @@
--- Elite V5 PRO 2025 - نسخة جديدة ومحسنة كاملة بدون Emotes
--- نظام Bang متطور: يتبع اللاعب الهدف ويذهب قليلاً أمامه وخلفه بتذبذب لتبدو الحركة طبيعية جداً
--- مع دعم كامل للميزات الأساسية: سرعة، طيران، قفز، ESP، معلومات لاعب، قائمة تفاعلية تفتح على طول
+-- Elite V5 PRO 2025 - نسخة كاملة ومتطورة بدون Emotes
+-- نظام Bang متطور: يتبع الهدف مع تذبذب أمامي وخلفي طبيعي
+-- دعم كامل للميزات: Speed, Fly, Jump, ESP, Player Info, قوائم متجاوبة
 
--- تنظيف القائمة القديمة
+-- تنظيف القائمة القديمة إذا كانت موجودة
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
 -- الخدمات الأساسية
@@ -11,16 +11,15 @@ local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 
--- واجهة المستخدم الرئيسية
+-- إنشاء واجهة المستخدم الرئيسية
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
 EliteMenu.Parent = game.CoreGui
 EliteMenu.ResetOnSpawn = false
-EliteMenu.Enabled = true -- تفتح على طول
+EliteMenu.Enabled = true
 
--- إضافة زوايا مستديرة
+-- دالة إضافة زوايا مستديرة
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 12)
@@ -28,7 +27,7 @@ local function addUICorner(parent, radius)
     return corner
 end
 
--- إشعارات
+-- دالة إنشاء إشعارات بتأثيرات Tween
 local function createNotification(text, duration)
     duration = duration or 3
     local notifGui = Instance.new("ScreenGui", game.CoreGui)
@@ -64,7 +63,7 @@ local function createNotification(text, duration)
     end)
 end
 
--- الإطار الرئيسي
+-- الإطار الرئيسي للمينيو
 local MainFrame = Instance.new("Frame", EliteMenu)
 local defaultSize = UDim2.new(0, 560, 0, 480)
 local minimizedSize = UDim2.new(0, 560, 0, 45)
@@ -120,6 +119,7 @@ MinimizeBtn.AutoButtonColor = false
 addUICorner(MinimizeBtn, 12)
 
 local isMinimized = false
+
 MinimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = defaultSize}):Play()
@@ -387,136 +387,136 @@ do
     toggleBtn.MouseButton1Click:Connect(function()
         bangEnabled = not bangEnabled
         toggleBtn.Text = bangEnabled and "ON" or "OFF"
-        toggleBtn.BackgroundColor3 = bangEnabled and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(120, 0, 180)
+        toggleBtn.BackgroundColor3 = bangEnabled and Color3.fromRGB(0, 180, 60) or Color3.fromRGB(120, 0, 180)
         createNotification("Bang System " .. (bangEnabled and "مفعل" or "معطل"))
     end)
 
-    -- المتغيرات لتحكم موقع bang
-    local targetPlayer = nil
-    local amplitude = 3 -- مقدار التذبذب للأمام والخلف
-    local frequency = 1.5 -- سرعة التذبذب
+    local targetDropdownLabel = Instance.new("TextLabel", page)
+    targetDropdownLabel.Size = UDim2.new(0, 120, 0, 25)
+    targetDropdownLabel.Position = UDim2.new(0, 160, 0, 88)
+    targetDropdownLabel.BackgroundTransparency = 1
+    targetDropdownLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    targetDropdownLabel.Font = Enum.Font.Gotham
+    targetDropdownLabel.TextSize = 18
+    targetDropdownLabel.Text = "اختر هدف:"
 
-    -- اختيار هدف تلقائي (أقرب لاعب)
-    local function getClosestPlayer()
-        local closest = nil
-        local closestDistance = math.huge
-        if not LocalPlayer.Character then return nil end
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return nil end
+    local targetDropdown = Instance.new("TextBox", page)
+    targetDropdown.Size = UDim2.new(0, 140, 0, 30)
+    targetDropdown.Position = UDim2.new(0, 250, 0, 80)
+    targetDropdown.BackgroundColor3 = Color3.fromRGB(50, 15, 90)
+    targetDropdown.TextColor3 = Color3.fromRGB(230, 230, 230)
+    targetDropdown.Font = Enum.Font.GothamBold
+    targetDropdown.TextSize = 20
+    targetDropdown.PlaceholderText = "اكتب اسم الهدف"
+    addUICorner(targetDropdown, 14)
 
+    local function getPlayerByName(name)
         for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                local part = plr.Character.HumanoidRootPart
-                local dist = (part.Position - hrp.Position).Magnitude
-                if dist < closestDistance then
-                    closestDistance = dist
-                    closest = plr
-                end
+            if plr.Name:lower():find(name:lower()) then
+                return plr
             end
         end
-        return closest
+        return nil
     end
 
-    -- تتبع موقع bang مع تذبذب أمامي وخلفي
-    RS:BindToRenderStep("BangFollow", Enum.RenderPriority.Character.Value + 2, function(dt)
-        if not bangEnabled or not LocalPlayer.Character then return end
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+    -- نظام التتبع مع تذبذب
+    local oscillationAmplitude = 3
+    local oscillationFrequency = 1.6 -- oscillations per second
 
-        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") or (targetPlayer.Character:FindFirstChildOfClass("Humanoid").Health <= 0) then
-            targetPlayer = getClosestPlayer()
-        end
-        if not targetPlayer then return end
+    RS:BindToRenderStep("BangSystem", Enum.RenderPriority.Character.Value + 2, function(dt)
+        if not bangEnabled then return end
+        if not LocalPlayer.Character then return end
 
-        local targetHRP = targetPlayer.Character.HumanoidRootPart
-        local camCF = workspace.CurrentCamera.CFrame
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
 
-        -- حساب موقع متذبذب أمام وخلف الهدف
-        local time = tick()
-        local oscillation = math.sin(time * frequency) * amplitude
+        local targetName = targetDropdown.Text
+        if targetName == "" then return end
 
-        -- وضعية خلف اللاعب الهدف مع تحرك متذبذب (بين الأمام والخلف)
-        local offsetDirection = -targetHRP.CFrame.LookVector -- خلف اللاعب
-        local basePos = targetHRP.Position + offsetDirection * 3 -- 3 وحدات خلف الهدف
+        local targetPlayer = getPlayerByName(targetName)
+        if not targetPlayer or not targetPlayer.Character then return end
 
-        -- أضف تذبذب أمام وخلف (على اتجاه النظر)
-        local bangPos = basePos + targetHRP.CFrame.LookVector * oscillation
+        local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetRoot then return end
 
-        -- تحريك HumanoidRootPart الخاص بنا (اللاعب) إلى موقع bangPos مع توجيه الكاميرا باتجاه الهدف
-        local bodyPos = hrp.Position
-        local distance = (bangPos - bodyPos).Magnitude
+        -- حساب تذبذب أمامي وخلفي بناء على الوقت
+        local oscillationOffset = math.sin(tick() * oscillationFrequency * math.pi * 2) * oscillationAmplitude
+        -- الاتجاه بين اللاعبين
+        local direction = (targetRoot.Position - root.Position).Unit
 
-        -- جعل الحركة سلسة باستخدام Tween
-        local tweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(bangPos, targetHRP.Position)})
-        tween:Play()
+        -- الموقــع الجديد مع تذبذب أمامي وخلفي (أمام الهدف + أو - التذبذب)
+        local offsetPosition = targetRoot.Position + direction * oscillationOffset
+
+        -- تحريك اللاعب بشكل ناعم نحو الموقع الجديد
+        root.CFrame = CFrame.new(offsetPosition) * CFrame.Angles(0, math.atan2(direction.X, direction.Z), 0)
     end)
 end
 
---------------------------
--- Tab 3: معلومات اللاعب
---------------------------
+------------------------------
+-- Tab 3: معلومات اللاعب (Player Info)
+------------------------------
 do
     local page = Pages[3]
     page:ClearAllChildren()
 
-    local title = Instance.new("TextLabel", page)
-    title.Size = UDim2.new(1, -40, 0, 50)
-    title.Position = UDim2.new(0, 20, 0, 20)
-    title.BackgroundTransparency = 1
-    title.TextColor3 = Color3.fromRGB(220, 220, 220)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 28
-    title.Text = "معلومات اللاعب"
+    local infoTitle = Instance.new("TextLabel", page)
+    infoTitle.Size = UDim2.new(1, -40, 0, 50)
+    infoTitle.Position = UDim2.new(0, 20, 0, 20)
+    infoTitle.BackgroundTransparency = 1
+    infoTitle.TextColor3 = Color3.fromRGB(230, 230, 230)
+    infoTitle.Font = Enum.Font.GothamBold
+    infoTitle.TextSize = 24
+    infoTitle.Text = "معلومات اللاعب"
 
-    local infoLabel = Instance.new("TextLabel", page)
-    infoLabel.Size = UDim2.new(1, -40, 0, 300)
-    infoLabel.Position = UDim2.new(0, 20, 0, 80)
-    infoLabel.BackgroundTransparency = 1
-    infoLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
-    infoLabel.Font = Enum.Font.Gotham
-    infoLabel.TextSize = 20
-    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
-    infoLabel.TextWrapped = true
-    infoLabel.Text = "جارٍ جلب البيانات..."
+    local infoText = Instance.new("TextLabel", page)
+    infoText.Size = UDim2.new(1, -40, 0, 180)
+    infoText.Position = UDim2.new(0, 20, 0, 80)
+    infoText.BackgroundTransparency = 1
+    infoText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    infoText.Font = Enum.Font.Gotham
+    infoText.TextSize = 20
+    infoText.TextWrapped = true
+    infoText.TextXAlignment = Enum.TextXAlignment.Left
+    infoText.TextYAlignment = Enum.TextYAlignment.Top
 
-    local function updateInfo()
-        if not LocalPlayer.Character then
-            infoLabel.Text = "لا توجد شخصية حاليا."
-            return
-        end
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if not humanoid then
-            infoLabel.Text = "لا توجد عناصر حيوية."
+    local function updatePlayerInfo()
+        local plr = LocalPlayer
+        local char = plr.Character
+
+        if not char then
+            infoText.Text = "الشخصية غير موجودة."
             return
         end
 
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local posText = hrp and ("الإحداثيات: " .. string.format("%.1f, %.1f, %.1f", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)) or "الإحداثيات غير متوفرة"
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
 
-        local health = humanoid.Health
-        local maxHealth = humanoid.MaxHealth
-        local walkSpeed = humanoid.WalkSpeed
-        local jumpPower = humanoid.JumpPower
+        if not humanoid or not hrp then
+            infoText.Text = "لا يمكن إيجاد معلومات كافية."
+            return
+        end
 
-        infoLabel.Text = 
-            "اسم اللاعب: " .. LocalPlayer.Name .. "\n" ..
-            posText .. "\n" ..
-            string.format("الصحة: %.0f / %.0f\n", health, maxHealth) ..
-            string.format("سرعة المشي: %.1f\n", walkSpeed) ..
-            string.format("قوة القفز: %.1f\n", jumpPower)
+        local health = math.floor(humanoid.Health)
+        local maxHealth = math.floor(humanoid.MaxHealth)
+        local pos = hrp.Position
+        local speed = humanoid.WalkSpeed
+
+        local infoStr = string.format(
+            "الاسم: %s\nالصحة: %d / %d\nالإحداثيات: (%.1f, %.1f, %.1f)\nالسرعة الحالية: %d",
+            plr.Name,
+            health,
+            maxHealth,
+            pos.X, pos.Y, pos.Z,
+            speed
+        )
+
+        infoText.Text = infoStr
     end
 
-    updateInfo()
-    -- تحديث كل 1 ثانية
-    task.spawn(function()
-        while EliteMenu.Enabled do
-            updateInfo()
-            task.wait(1)
-        end
-    end)
+    RS.RenderStepped:Connect(updatePlayerInfo)
 end
 
--- إشعار ترحيبي عند بداية التشغيل
-createNotification("تم تشغيل Elite V5 PRO 2025 - النسخة المحسنة", 4)
+-- تنشيط صفحة الرئيسية تلقائياً مع تلوين الزر
+TweenService:Create(TabButtons[1], TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(90, 20, 120)}):Play()
+
+createNotification("تم تحميل Elite V5 PRO بنجاح! استمتع 😈🔥")
