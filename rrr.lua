@@ -6,6 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local ContextActionService = game:GetService("ContextActionService")
 
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
@@ -120,7 +121,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local Tabs = {"الرئيسية", "Bang", "معلومات اللاعب"}
+local Tabs = {"الرئيسية", "Bang", "Emote", "معلومات اللاعب"}
 local TabButtons = {}
 Pages = {}
 
@@ -382,12 +383,13 @@ do
     addUICorner(speedSlider, 14)
 
     local fillBar = Instance.new("Frame", speedSlider)
-    fillBar.Size = UDim2.new(0.2, 0, 1, 0)
-    fillBar.BackgroundColor3 = Color3.fromRGB(230, 200, 255)
+    fillBar.Size = UDim2.new(0.1, 0, 1, 0)
+    fillBar.BackgroundColor3 = Color3.fromRGB(180, 0, 250)
     addUICorner(fillBar, 14)
 
+    -- Drag logic for slider
     local dragging = false
-
+    local sliderWidth = 280
     speedSlider.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
@@ -400,160 +402,198 @@ do
     end)
     speedSlider.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relativePos = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
-            local scale = relativePos / speedSlider.AbsoluteSize.X
-            fillBar.Size = UDim2.new(scale, 0, 1, 0)
-            speedLabel.Text = string.format("سرعة الحركة: %.2f", scale * 5)
+            local posX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, sliderWidth)
+            local ratio = posX / sliderWidth
+            fillBar.Size = UDim2.new(ratio, 0, 1, 0)
+            local speedVal = math.floor(ratio * 200) / 100
+            if speedVal < 0.1 then speedVal = 0.1 end
+            speedLabel.Text = ("سرعة الحركة: %.2f"):format(speedVal)
+            bangSpeed = speedVal
         end
     end)
 
     local bangActive = false
+    local bangSpeed = 1.0
     local targetPlayer = nil
-    local timeElapsed = 0
-    local moveSpeed = 1
-    local maxDistance = 10 -- أقصى مسافة ذهاب وإياب مسموح بها (الوحدة)
-    local sideAmplitude = 2 -- مقدار الحركة الجانبية الصغيرة
+    local bangConnection = nil
+
+    local function findTargetPlayer(namePart)
+        if not namePart or namePart == "" then return nil end
+        namePart = namePart:lower()
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Name:lower():find(namePart) then
+                return plr
+            end
+        end
+        return nil
+    end
+
+    local bangMoveDirection = 1
+    local bangOffset = 0
+    local maxBangOffset = 10
 
     toggleBangBtn.MouseButton1Click:Connect(function()
-        if bangActive then
+        if not bangActive then
+            targetPlayer = findTargetPlayer(targetInput.Text)
+            if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                createNotification("لم يتم العثور على اللاعب المستهدف")
+                return
+            end
+            createNotification("تم تفعيل Bang على "..targetPlayer.Name)
+            bangActive = true
+            toggleBangBtn.Text = "تعطيل Bang"
+            toggleBangBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
+
+            bangConnection = RS.Heartbeat:Connect(function()
+                if not bangActive or not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    bangConnection:Disconnect()
+                    bangActive = false
+                    toggleBangBtn.Text = "تفعيل Bang"
+                    toggleBangBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 180)
+                    return
+                end
+
+                local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local targetHRP = targetPlayer.Character.HumanoidRootPart
+                if hrp then
+                    -- تعديل موقع اللاعب ليكون خلف الهدف بمسافة ثابتة مع حركة جانبية متذبذبة
+                    local targetCF = targetHRP.CFrame
+                    bangOffset = bangOffset + bangMoveDirection * bangSpeed
+                    if math.abs(bangOffset) > maxBangOffset then
+                        bangMoveDirection = -bangMoveDirection
+                    end
+
+                    -- نحسب مكان خلف الهدف مع حركة يمين ويسار بسيطة
+                    local offsetVector = (targetCF.LookVector * -5) + (targetCF.RightVector * (bangOffset / 10))
+                    local newPos = targetCF.Position + offsetVector + Vector3.new(0, 3, 0)
+
+                    -- حركة سلسة
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(newPos, targetCF.Position)
+
+                    -- منع الحركة العادية
+                    if LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        LocalPlayer.Character.Humanoid.WalkSpeed = 0
+                        LocalPlayer.Character.Humanoid.JumpPower = 0
+                    end
+                end
+            end)
+        else
+            if bangConnection then
+                bangConnection:Disconnect()
+                bangConnection = nil
+            end
             bangActive = false
             toggleBangBtn.Text = "تفعيل Bang"
-            createNotification("تم إيقاف Bang")
-            targetPlayer = nil
-        else
-            local inputName = targetInput.Text:lower()
-            targetPlayer = nil
-            for _, p in pairs(Players:GetPlayers()) do
-                if p.Name:lower():find(inputName) then
-                    targetPlayer = p
-                    break
-                end
+            toggleBangBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 180)
+            -- استعادة سرعة الحركة والقفز
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = 16
+                LocalPlayer.Character.Humanoid.JumpPower = 50
             end
-            if targetPlayer == nil then
-                createNotification("لم يتم العثور على اللاعب")
-                return
-            end
-            if targetPlayer == LocalPlayer then
-                createNotification("لا يمكنك تفعيل Bang على نفسك!")
-                return
-            end
-            bangActive = true
-            toggleBangBtn.Text = "إيقاف Bang"
-            timeElapsed = 0
-            createNotification("تم تفعيل Bang على " .. targetPlayer.Name)
-        end
-    end)
-
-    RS.Heartbeat:Connect(function(dt)
-        if bangActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            moveSpeed = tonumber(speedLabel.Text:match("([%d%.]+)")) or 1
-            timeElapsed = timeElapsed + dt * moveSpeed
-
-            local targetHRP = targetPlayer.Character.HumanoidRootPart
-            local localHRP = LocalPlayer.Character.HumanoidRootPart
-
-            -- الحصول على اتجاه النظر أمام اللاعب الهدف (محور Z)
-            local lookVector = targetHRP.CFrame.LookVector.Unit
-
-            -- الحصول على اتجاه جانبي (يمين اللاعب الهدف، محور X)
-            local rightVector = targetHRP.CFrame.RightVector.Unit
-
-            -- حركة ذهاب وإياب أمام وخلف اللاعب الهدف (مثل الأصلي)
-            local oscillation = math.sin(timeElapsed * 5) * maxDistance
-
-            -- حركة جانبية صغيرة (حركة ذهاب وإياب أقل تردداً وسرعة)
-            local sideOscillation = math.sin(timeElapsed * 2) * sideAmplitude
-
-            -- تحديد الموقع الجديد مع إضافة حركة ذهاب وإياب + حركة جانبية
-            local newPos = targetHRP.Position + (lookVector * oscillation) + (rightVector * sideOscillation)
-
-            -- الحفاظ على ارتفاع اللاعب كما هو
-            newPos = Vector3.new(newPos.X, localHRP.Position.Y, newPos.Z)
-
-            -- تحريك HumanoidRootPart بسلاسة (بدون دوران مفرط)
-            localHRP.CFrame = CFrame.new(newPos, newPos + lookVector)
-        elseif not bangActive then
-            -- يمكن هنا إضافة إعادة الوضع الطبيعي إذا أردت
+            createNotification("تم تعطيل Bang")
         end
     end)
 end
 
 ---------------------------
--- الصفحة 3 - معلومات اللاعب (صورة + بيانات)
+-- الصفحة 3 - Emote (تشغيل ايموت محدد)
 ---------------------------
 do
     local page = Pages[3]
     page:ClearAllChildren()
 
-    local profileImage = Instance.new("ImageLabel", page)
-    profileImage.Size = UDim2.new(0, 140, 0, 140)
-    profileImage.Position = UDim2.new(0, 20, 0, 20)
-    profileImage.BackgroundTransparency = 1
-    profileImage.Image = "rbxassetid://0" -- افتراضي
+    local emoteName = "Dolphin Dance" -- اسم الإيموت في Roblox catalog
+    local emoteAssetId = 5938365243 -- المعرف الخاص بالإيموت
 
-    local playerNameLabel = Instance.new("TextLabel", page)
-    playerNameLabel.Size = UDim2.new(0, 300, 0, 35)
-    playerNameLabel.Position = UDim2.new(0, 170, 0, 20)
-    playerNameLabel.BackgroundTransparency = 1
-    playerNameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    playerNameLabel.Font = Enum.Font.GothamBold
-    playerNameLabel.TextSize = 26
-    playerNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    playerNameLabel.Text = "اسم اللاعب: " .. LocalPlayer.Name
+    local emoteBtn = Instance.new("TextButton", page)
+    emoteBtn.Size = UDim2.new(0, 300, 0, 60)
+    emoteBtn.Position = UDim2.new(0.5, -150, 0.3, 0)
+    emoteBtn.Text = "تشغيل ايموت: Dolphin Dance"
+    emoteBtn.Font = Enum.Font.GothamBold
+    emoteBtn.TextSize = 24
+    emoteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    emoteBtn.BackgroundColor3 = Color3.fromRGB(75, 0, 150)
+    addUICorner(emoteBtn, 20)
 
-    local userIdLabel = Instance.new("TextLabel", page)
-    userIdLabel.Size = UDim2.new(0, 300, 0, 25)
-    userIdLabel.Position = UDim2.new(0, 170, 0, 65)
-    userIdLabel.BackgroundTransparency = 1
-    userIdLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    userIdLabel.Font = Enum.Font.Gotham
-    userIdLabel.TextSize = 18
-    userIdLabel.TextXAlignment = Enum.TextXAlignment.Left
-    userIdLabel.Text = "UserId: " .. tostring(LocalPlayer.UserId)
+    local playingEmote = false
+    local currentAnimTrack = nil
 
-    local healthLabel = Instance.new("TextLabel", page)
-    healthLabel.Size = UDim2.new(0, 300, 0, 25)
-    healthLabel.Position = UDim2.new(0, 170, 0, 100)
-    healthLabel.BackgroundTransparency = 1
-    healthLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    healthLabel.Font = Enum.Font.GothamBold
-    healthLabel.TextSize = 22
-    healthLabel.TextXAlignment = Enum.TextXAlignment.Left
-    healthLabel.Text = "الصحة: غير متاح"
-
-    local posLabel = Instance.new("TextLabel", page)
-    posLabel.Size = UDim2.new(0, 300, 0, 25)
-    posLabel.Position = UDim2.new(0, 170, 0, 135)
-    posLabel.BackgroundTransparency = 1
-    posLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-    posLabel.Font = Enum.Font.GothamBold
-    posLabel.TextSize = 22
-    posLabel.TextXAlignment = Enum.TextXAlignment.Left
-    posLabel.Text = "الموقع: غير متاح"
-
-    RS.Heartbeat:Connect(function()
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            if humanoid then
-                healthLabel.Text = string.format("الصحة: %.0f / %.0f", humanoid.Health, humanoid.MaxHealth)
-            end
-            if rootPart then
-                local pos = rootPart.Position
-                posLabel.Text = string.format("الموقع: X=%.1f, Y=%.1f, Z=%.1f", pos.X, pos.Y, pos.Z)
-            end
+    local function stopCurrentEmote()
+        if currentAnimTrack then
+            currentAnimTrack:Stop()
+            currentAnimTrack:Destroy()
+            currentAnimTrack = nil
         end
-    end)
-
-    -- تحميل صورة البروفايل من avatar
-    local success, userThumbnailUrl = pcall(function()
-        return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    end)
-    if success and userThumbnailUrl then
-        profileImage.Image = userThumbnailUrl
+        playingEmote = false
     end
+
+    emoteBtn.MouseButton1Click:Connect(function()
+        if not LocalPlayer.Character then
+            createNotification("الشخصية غير موجودة")
+            return
+        end
+
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if not humanoid then
+            createNotification("لم يتم العثور على Humanoid")
+            return
+        end
+
+        if playingEmote then
+            stopCurrentEmote()
+            emoteBtn.Text = "تشغيل ايموت: Dolphin Dance"
+            createNotification("تم إيقاف الايموت")
+            return
+        end
+
+        -- تحميل الانميشن من assetId
+        local animation = Instance.new("Animation")
+        animation.AnimationId = "rbxassetid://"..emoteAssetId
+
+        currentAnimTrack = humanoid:LoadAnimation(animation)
+        currentAnimTrack.Priority = Enum.AnimationPriority.Action
+        currentAnimTrack:Play()
+        playingEmote = true
+        emoteBtn.Text = "إيقاف الايموت"
+        createNotification("تم تشغيل ايموت Dolphin Dance")
+    end)
 end
 
--- إظهار المينيو
-EliteMenu.Enabled = true
+---------------------------
+-- الصفحة 4 - معلومات اللاعب
+---------------------------
+do
+    local page = Pages[4]
+    page:ClearAllChildren()
+
+    local function createLabel(text, posY)
+        local lbl = Instance.new("TextLabel", page)
+        lbl.Size = UDim2.new(0, 400, 0, 30)
+        lbl.Position = UDim2.new(0, 20, 0, posY)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 22
+        lbl.TextColor3 = Color3.fromRGB(230, 230, 230)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Text = text
+        return lbl
+    end
+
+    local nameLabel = createLabel("اسم اللاعب: "..LocalPlayer.Name, 20)
+    local userIdLabel = createLabel("UserId: "..LocalPlayer.UserId, 60)
+    local accountAgeLabel = createLabel("عمر الحساب: "..LocalPlayer.AccountAge.." يوم", 100)
+    local healthLabel = createLabel("الصحة: N/A", 140)
+    local walkSpeedLabel = createLabel("سرعة الحركة: N/A", 180)
+    local jumpPowerLabel = createLabel("قوة القفز: N/A", 220)
+
+    local function updateStats()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            healthLabel.Text = ("الصحة: %d / %d"):format(humanoid.Health, humanoid.MaxHealth)
+            walkSpeedLabel.Text = ("سرعة الحركة: %.1f"):format(humanoid.WalkSpeed)
+            jumpPowerLabel.Text = ("قوة القفز: %.1f"):format(humanoid.JumpPower)
+        end
+    end
+
+    RS.Heartbeat:Connect(updateStats)
+end
