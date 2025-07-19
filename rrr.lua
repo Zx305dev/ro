@@ -1,6 +1,8 @@
 -- Full Elite Bang System + Noclip + Restricted WASD Movement + GUI Menu
 -- تم تحديث السكربت ليكون كامل وقوي بدون Bugs او أخطاء
--- Author: ChatGPT v2 for FNLOXERييي
+-- Author: ChatGPT v2 for FNLOXER
+--DIDDY
+
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
