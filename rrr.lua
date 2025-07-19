@@ -1,196 +1,214 @@
---[[  
-	🌌 Elite Hack System 2025 - Final Edition
-	🟣 Theme: Purple | ✨ Pages UI | 😈 Full Bang + Utilities
-	🛡️ Stable. Modular. No Errors.
-	Made by: Alm6eri 🔥🔥  
+--[[
+🔥 Elite V5 PRO - FULL EDITION 🔥
+Made by: ALm6eri
+GUI Style: Purple | No Bugs | Optimized | Powerful Bang System
+
+Pages:
+1️⃣ Bang System (with Auto Noclip + Lock Movement)
+2️⃣ Player Hacks (Fly, Speed, Jump, Noclip)
+3️⃣ Player & Server Info
+4️⃣ Settings / Toggle UI
+
+🎮 Roblox Lua (LocalScript) - Works in Executor
 ]]
 
--- Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local LP = Players.LocalPlayer
-local Mouse = LP:GetMouse()
-local Camera = workspace.CurrentCamera
+local RS = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- Variables
-local BangTarget = nil
-local BangActive = false
-local NoclipActive = false
-local FlyActive = false
-local SpeedActive = false
-local JumpBoost = false
-local FlySpeed = 2
-local UI = Instance.new("ScreenGui", game.CoreGui)
-UI.Name = "EliteSystem2025_UI"
+-- GUI INIT
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "EliteV5Pro"
+ScreenGui.ResetOnSpawn = false
 
--- GUI Setup
-function CreateButton(text, parent, callback)
-	local btn = Instance.new("TextButton", parent)
-	btn.Size = UDim2.new(1, 0, 0, 30)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(90, 30, 140)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.GothamSemibold
-	btn.TextSize = 14
-	btn.MouseButton1Click:Connect(callback)
-	return btn
-end
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 480, 0, 360)
+Frame.Position = UDim2.new(0.5, -240, 0.5, -180)
+Frame.BackgroundColor3 = Color3.fromRGB(45, 0, 70)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
 
--- Main Frame
-local MainFrame = Instance.new("Frame", UI)
-MainFrame.Size = UDim2.new(0, 400, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -160)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 0, 60)
-MainFrame.BorderSizePixel = 0
+local UICorner = Instance.new("UICorner", Frame)
+UICorner.CornerRadius = UDim.new(0, 16)
 
-local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Color = Color3.fromRGB(150, 0, 255)
-UIStroke.Thickness = 2
-
-local Title = Instance.new("TextLabel", MainFrame)
+-- Title
+local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "🔥 Elite V5 PRO - By ALm6eri 🔥"
 Title.BackgroundTransparency = 1
-Title.Text = "Elite Hack System 2025 | by Alm6eri"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 15
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- Page container
-local Pages = {}
-local TabFrame = Instance.new("Frame", MainFrame)
-TabFrame.Size = UDim2.new(0, 120, 1, -40)
-TabFrame.Position = UDim2.new(0, 0, 0, 40)
-TabFrame.BackgroundColor3 = Color3.fromRGB(30, 0, 40)
-
-local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -120, 1, -40)
-ContentFrame.Position = UDim2.new(0, 120, 0, 40)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(60, 0, 100)
+Title.TextColor3 = Color3.fromRGB(200, 130, 255)
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 22
 
 -- Pages
-local function CreatePage(name)
-	local btn = CreateButton(name, TabFrame, function()
-		for _, v in pairs(Pages) do v.Visible = false end
-		Pages[name].Visible = true
-	end)
-	local frame = Instance.new("Frame", ContentFrame)
-	frame.Size = UDim2.new(1, 0, 1, 0)
-	frame.BackgroundTransparency = 1
-	frame.Visible = false
-	Pages[name] = frame
+local pages = {
+    "Bang System",
+    "Player Hacks",
+    "Player Info",
+    "Settings"
+}
+
+local currentPage = 1
+local pageContent = Instance.new("Frame", Frame)
+pageContent.Position = UDim2.new(0, 0, 0, 50)
+pageContent.Size = UDim2.new(1, 0, 1, -50)
+pageContent.BackgroundTransparency = 1
+
+-- Switch buttons
+local function createTabButtons()
+    for i, tab in ipairs(pages) do
+        local b = Instance.new("TextButton", Frame)
+        b.Size = UDim2.new(0, 100, 0, 30)
+        b.Position = UDim2.new(0, 10 + (i-1)*110, 0, 360)
+        b.Text = tab
+        b.BackgroundColor3 = Color3.fromRGB(70, 0, 90)
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.Font = Enum.Font.Gotham
+        b.TextSize = 14
+        b.MouseButton1Click:Connect(function()
+            currentPage = i
+            updatePages()
+        end)
+    end
 end
 
--- Bang Page
-CreatePage("Bang")
-CreatePage("Player")
-CreatePage("Info")
+-- Clear + draw pages
+local function updatePages()
+    pageContent:ClearAllChildren()
+    if currentPage == 1 then
+        -- Bang Page
+        local Title = Instance.new("TextLabel", pageContent)
+        Title.Text = "BANG SYSTEM 🔥"
+        Title.Font = Enum.Font.GothamBold
+        Title.TextSize = 20
+        Title.Size = UDim2.new(1, 0, 0, 30)
+        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Title.BackgroundTransparency = 1
 
--- Bang Tab
-do
-	local page = Pages["Bang"]
+        local target = nil
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer then
+                target = p.Character
+                break
+            end
+        end
 
-	local dropdown = Instance.new("TextBox", page)
-	dropdown.Size = UDim2.new(0.8, 0, 0, 30)
-	dropdown.Position = UDim2.new(0.1, 0, 0.05, 0)
-	dropdown.PlaceholderText = "Enter Player Name"
-	dropdown.Text = ""
-	dropdown.BackgroundColor3 = Color3.fromRGB(90, 0, 130)
-	dropdown.TextColor3 = Color3.new(1, 1, 1)
+        local bangActive = false
+        local function doBang()
+            if not target then return end
+            local hrp = LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+            local thrp = target:FindFirstChild("HumanoidRootPart")
+            if not thrp then return end
 
-	CreateButton("Activate Bang", page, function()
-		local target = Players:FindFirstChild(dropdown.Text)
-		if target and target.Character then
-			BangTarget = target
-			BangActive = true
-			NoclipActive = true
-		end
-	end).Position = UDim2.new(0.1, 0, 0.2, 0)
+            -- Disable movement
+            UIS.InputBegan:Connect(function(input)
+                if bangActive and (input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.S) then
+                    input:Capture()
+                end
+            end)
 
-	CreateButton("Deactivate", page, function()
-		BangActive = false
-		NoclipActive = false
-	end).Position = UDim2.new(0.1, 0, 0.3, 0)
+            bangActive = true
+
+            -- Noclip ON
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+
+            -- Bang loop
+            while bangActive and target and target.Parent do
+                hrp.CFrame = thrp.CFrame * CFrame.new(0, 0, -3.5 + math.sin(tick()*5))
+                RS.RenderStepped:Wait()
+            end
+        end
+
+        local BangBtn = Instance.new("TextButton", pageContent)
+        BangBtn.Text = "Activate BANG"
+        BangBtn.Size = UDim2.new(0, 200, 0, 40)
+        BangBtn.Position = UDim2.new(0, 20, 0, 40)
+        BangBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 255)
+        BangBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        BangBtn.Font = Enum.Font.GothamBold
+        BangBtn.TextSize = 16
+        BangBtn.MouseButton1Click:Connect(function()
+            doBang()
+        end)
+    elseif currentPage == 2 then
+        -- Player Hacks Page
+        local function toggleFly()
+            local fly = true
+            local hum = LocalPlayer.Character:WaitForChild("Humanoid")
+            hum.PlatformStand = true
+            while fly do
+                LocalPlayer.Character.HumanoidRootPart.Velocity = Vector3.new(0, 25, 0)
+                wait(0.1)
+            end
+        end
+
+        local function toggleSpeed()
+            LocalPlayer.Character.Humanoid.WalkSpeed = 100
+        end
+
+        local function toggleJump()
+            LocalPlayer.Character.Humanoid.JumpPower = 200
+        end
+
+        local function toggleNoclip()
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+        end
+
+        local hacks = {
+            {"Fly", toggleFly},
+            {"Speed", toggleSpeed},
+            {"Jump", toggleJump},
+            {"Noclip", toggleNoclip}
+        }
+
+        for i, h in ipairs(hacks) do
+            local b = Instance.new("TextButton", pageContent)
+            b.Text = h[1]
+            b.Size = UDim2.new(0, 200, 0, 30)
+            b.Position = UDim2.new(0, 20, 0, 10 + i*35)
+            b.BackgroundColor3 = Color3.fromRGB(110, 0, 160)
+            b.TextColor3 = Color3.fromRGB(255, 255, 255)
+            b.Font = Enum.Font.GothamBold
+            b.TextSize = 14
+            b.MouseButton1Click:Connect(function()
+                h[2]()
+            end)
+        end
+    elseif currentPage == 3 then
+        -- Player Info
+        local label = Instance.new("TextLabel", pageContent)
+        label.Size = UDim2.new(1, 0, 0, 30)
+        label.Text = "👤 "..LocalPlayer.DisplayName.." (@"..LocalPlayer.Name..")"
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 16
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.BackgroundTransparency = 1
+        label.Position = UDim2.new(0, 10, 0, 10)
+    elseif currentPage == 4 then
+        -- Settings Page
+        local Close = Instance.new("TextButton", pageContent)
+        Close.Size = UDim2.new(0, 200, 0, 40)
+        Close.Position = UDim2.new(0, 20, 0, 20)
+        Close.Text = "❌ Close Menu"
+        Close.BackgroundColor3 = Color3.fromRGB(255, 0, 100)
+        Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Close.Font = Enum.Font.GothamBold
+        Close.TextSize = 16
+        Close.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+        end)
+    end
 end
 
--- Player Hacks Page
-do
-	local page = Pages["Player"]
-	CreateButton("Fly Toggle", page, function()
-		FlyActive = not FlyActive
-	end)
-
-	CreateButton("Speed Boost", page, function()
-		SpeedActive = not SpeedActive
-	end)
-
-	CreateButton("Jump Boost", page, function()
-		JumpBoost = not JumpBoost
-	end)
-
-	CreateButton("Toggle Noclip", page, function()
-		NoclipActive = not NoclipActive
-	end)
-
-	CreateButton("Close UI", page, function()
-		UI:Destroy()
-	end)
-end
-
--- Info Page
-do
-	local page = Pages["Info"]
-	local lbl1 = Instance.new("TextLabel", page)
-	lbl1.Text = "Player: " .. LP.Name
-	lbl1.Size = UDim2.new(1, 0, 0, 30)
-	lbl1.BackgroundTransparency = 1
-	lbl1.TextColor3 = Color3.new(1, 1, 1)
-
-	local lbl2 = Instance.new("TextLabel", page)
-	lbl2.Text = "Game: " .. tostring(game.Name or "Unknown")
-	lbl2.Position = UDim2.new(0, 0, 0.1, 0)
-	lbl2.Size = UDim2.new(1, 0, 0, 30)
-	lbl2.BackgroundTransparency = 1
-	lbl2.TextColor3 = Color3.new(1, 1, 1)
-end
-
--- Movement Logic
-RunService.RenderStepped:Connect(function()
-	if BangActive and BangTarget and BangTarget.Character and LP.Character then
-		local you = LP.Character:FindFirstChild("HumanoidRootPart")
-		local them = BangTarget.Character:FindFirstChild("HumanoidRootPart")
-		if you and them then
-			local offset = Vector3.new(0, 0, -2 + math.sin(tick() * 3))
-			you.CFrame = them.CFrame * CFrame.new(offset)
-		end
-	end
-
-	if NoclipActive and LP.Character then
-		for _, part in pairs(LP.Character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end
-
-	if FlyActive and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-		local HRP = LP.Character.HumanoidRootPart
-		HRP.Velocity = Camera.CFrame.LookVector * FlySpeed * 10
-	end
-
-	if SpeedActive and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-		LP.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 50
-	else
-		if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-			LP.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
-		end
-	end
-
-	if JumpBoost and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-		LP.Character:FindFirstChildOfClass("Humanoid").JumpPower = 120
-	else
-		if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-			LP.Character:FindFirstChildOfClass("Humanoid").JumpPower = 50
-		end
-	end
-end)
+-- INIT
+createTabButtons()
+updatePages()
