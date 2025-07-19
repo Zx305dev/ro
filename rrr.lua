@@ -1,6 +1,6 @@
--- Full Elite Hack System with Multiple Pages (Bang, Movement, Flight)
--- Author: ChatGPT v2 for FNLOXER (upgraded & optimized)
--- DIDDY & FNLOXER Style
+-- Elite Hack System (Purple Edition)
+-- Made By ALm6eri
+-- Maintained for FNLOXER
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -8,19 +8,21 @@ local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
+-- Colors: Purple-themed palette
 local COLORS = {
-    background = Color3.fromRGB(25, 25, 30),
-    darkBackground = Color3.fromRGB(15, 15, 20),
-    purple = Color3.fromRGB(130, 90, 220),
-    green = Color3.fromRGB(80, 200, 120),
-    red = Color3.fromRGB(220, 50, 50),
+    background = Color3.fromRGB(45, 15, 65),
+    darkBackground = Color3.fromRGB(30, 10, 45),
+    purpleMain = Color3.fromRGB(150, 80, 200),
+    purpleAccent = Color3.fromRGB(180, 120, 230),
     white = Color3.new(1,1,1),
-    orange = Color3.fromRGB(255,140,0)
+    green = Color3.fromRGB(90, 200, 130),
+    red = Color3.fromRGB(220, 50, 50),
 }
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "EliteHackMenu"
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
 
 local function addUICorner(inst, radius)
     local c = Instance.new("UICorner")
@@ -29,56 +31,150 @@ local function addUICorner(inst, radius)
 end
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 460, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -230, 0.5, -200)
+mainFrame.Size = UDim2.new(0, 480, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -240, 0.5, -210)
 mainFrame.BackgroundColor3 = COLORS.background
-addUICorner(mainFrame, 15)
+addUICorner(mainFrame, 18)
 mainFrame.Parent = ScreenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
 
+-- Title Bar with drag, close, resize functionality
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 38)
+titleBar.BackgroundColor3 = COLORS.purpleMain
+titleBar.Parent = mainFrame
+addUICorner(titleBar, 18)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Elite Hack System"
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 20
+titleLabel.TextColor3 = COLORS.white
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
+
+local madeByLabel = Instance.new("TextLabel")
+madeByLabel.Size = UDim2.new(0, 120, 1, 0)
+madeByLabel.Position = UDim2.new(1, -130, 0, 0)
+madeByLabel.BackgroundTransparency = 1
+madeByLabel.Text = "Made By ALm6eri"
+madeByLabel.Font = Enum.Font.GothamBold
+madeByLabel.TextSize = 14
+madeByLabel.TextColor3 = COLORS.purpleAccent
+madeByLabel.TextXAlignment = Enum.TextXAlignment.Right
+madeByLabel.Parent = titleBar
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 4)
+closeBtn.BackgroundColor3 = COLORS.red
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.TextColor3 = COLORS.white
+addUICorner(closeBtn, 6)
+closeBtn.Parent = titleBar
+
+-- Resize Button (bottom right corner)
+local resizeBtn = Instance.new("Frame")
+resizeBtn.Size = UDim2.new(0, 20, 0, 20)
+resizeBtn.Position = UDim2.new(1, -25, 1, -25)
+resizeBtn.BackgroundColor3 = COLORS.purpleAccent
+resizeBtn.AnchorPoint = Vector2.new(0,0)
+resizeBtn.Parent = mainFrame
+addUICorner(resizeBtn, 5)
+
+local resizeIcon = Instance.new("ImageLabel")
+resizeIcon.Size = UDim2.new(1, -4, 1, -4)
+resizeIcon.Position = UDim2.new(0, 2, 0, 2)
+resizeIcon.BackgroundTransparency = 1
+resizeIcon.Image = "rbxassetid://6031090991" -- diagonal resize icon
+resizeIcon.Parent = resizeBtn
+
+-- Tabs Setup
 local tabs = {"Bang System", "Movement", "Flight"}
 local pages = {}
 local tabButtons = {}
 local currentPage = 1
 
+local tabHolder = Instance.new("Frame")
+tabHolder.Size = UDim2.new(1, -40, 0, 42)
+tabHolder.Position = UDim2.new(0, 20, 0, 45)
+tabHolder.BackgroundTransparency = 1
+tabHolder.Parent = mainFrame
+
 for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 140, 0, 40)
-    btn.Position = UDim2.new(0, (i-1)*150 + 20, 0, 15)
-    btn.BackgroundColor3 = COLORS.purple
+    btn.Size = UDim2.new(0, 140, 1, 0)
+    btn.Position = UDim2.new(0, (i-1)*150, 0, 0)
+    btn.BackgroundColor3 = COLORS.purpleMain
     btn.Text = tabName
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 18
     btn.TextColor3 = COLORS.white
     addUICorner(btn, 12)
-    btn.Parent = mainFrame
+    btn.Parent = tabHolder
     tabButtons[i] = btn
 end
 
 local function setActivePage(index)
     for i, page in ipairs(pages) do
         page.Visible = (i == index)
-        tabButtons[i].BackgroundColor3 = (i == index) and COLORS.green or COLORS.purple
+        tabButtons[i].BackgroundColor3 = (i == index) and COLORS.purpleAccent or COLORS.purpleMain
     end
     currentPage = index
 end
 
--- =========== Bang System Page ===========
+-- Utility notification function
+local function createNotification(text, duration)
+    duration = duration or 3
+    local notif = Instance.new("TextLabel")
+    notif.Size = UDim2.new(0, 320, 0, 40)
+    notif.Position = UDim2.new(0.5, -160, 0, 40)
+    notif.BackgroundColor3 = COLORS.purpleMain
+    notif.TextColor3 = COLORS.white
+    notif.Font = Enum.Font.GothamBold
+    notif.TextSize = 20
+    notif.Text = text
+    notif.BackgroundTransparency = 0.2
+    notif.Parent = ScreenGui
+    addUICorner(notif, 12)
+
+    local tweenIn = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -160, 0, 100), BackgroundTransparency = 0})
+    tweenIn:Play()
+
+    delay(duration, function()
+        local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -160, 0, 40), BackgroundTransparency = 1})
+        tweenOut:Play()
+        tweenOut.Completed:Wait()
+        notif:Destroy()
+    end)
+end
+
+--[[
+-- Begin Bang System Page
+--]]
+
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -40, 1, -70)
-    page.Position = UDim2.new(0, 20, 0, 70)
+    page.Size = UDim2.new(1, -40, 1, -100)
+    page.Position = UDim2.new(0, 20, 0, 95)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
     page.Visible = false
     pages[1] = page
 
+    -- Target Dropdown
     local targetDropdown = Instance.new("TextButton")
     targetDropdown.Size = UDim2.new(0, 180, 0, 40)
     targetDropdown.Position = UDim2.new(0, 20, 0, 20)
-    targetDropdown.BackgroundColor3 = COLORS.purple
+    targetDropdown.BackgroundColor3 = COLORS.purpleMain
     targetDropdown.Text = "اختر هدف"
     targetDropdown.Font = Enum.Font.GothamBold
     targetDropdown.TextSize = 18
@@ -103,7 +199,7 @@ do
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1, 0, 0, 35)
                 btn.Position = UDim2.new(0, 0, 0, y)
-                btn.BackgroundColor3 = COLORS.purple
+                btn.BackgroundColor3 = COLORS.purpleMain
                 btn.Text = plr.Name
                 btn.Font = Enum.Font.GothamBold
                 btn.TextSize = 18
@@ -184,7 +280,7 @@ do
 
     local stopBtn = Instance.new("TextButton")
     stopBtn.Size = UDim2.new(0, 180, 0, 45)
-    stopBtn.Position = UDim2.new(0, 260, 0, 310)
+    stopBtn.Position = UDim2.new(0, 270, 0, 310)
     stopBtn.BackgroundColor3 = COLORS.red
     stopBtn.Text = "إيقاف Bang"
     stopBtn.Font = Enum.Font.GothamBold
@@ -221,56 +317,30 @@ do
         return nil
     end
 
-    local function createNotification(text, duration)
-        local notif = Instance.new("TextLabel")
-        notif.Size = UDim2.new(0, 300, 0, 45)
-        notif.Position = UDim2.new(0.5, -150, 0, 50)
-        notif.BackgroundColor3 = COLORS.purple
-        notif.TextColor3 = COLORS.white
-        notif.Font = Enum.Font.GothamBold
-        notif.TextSize = 22
-        notif.Text = text
-        notif.BackgroundTransparency = 0.2
-        notif.Parent = ScreenGui
-
-        local tweenIn = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 100), BackgroundTransparency = 0})
-        tweenIn:Play()
-
-        delay(duration or 3, function()
-            local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 50), BackgroundTransparency = 1})
-            tweenOut:Play()
-            tweenOut.Completed:Wait()
-            notif:Destroy()
-        end)
-    end
-
-    local function UpdateSpeed()
-        local val = tonumber(speedBox.Text)
-        if val and val > 0 and val <= 10 then
-            OSCILLATION_FREQUENCY = val
-            speedLabel.Text = "سرعة التذبذب: " .. tostring(val)
-        else
-            speedBox.Text = tostring(OSCILLATION_FREQUENCY)
-            createNotification("الرجاء إدخال رقم بين 0.1 و 10 للسرعة", 3)
-        end
-    end
-
-    local function UpdateDistance()
-        local val = tonumber(distBox.Text)
-        if val and val >= 1 and val <= 20 then
-            BASE_FOLLOW_DISTANCE = val
-            distLabel.Text = "المسافة من الهدف: " .. tostring(val)
-        else
-            distBox.Text = tostring(BASE_FOLLOW_DISTANCE)
-            createNotification("الرجاء إدخال رقم بين 1 و 20 للمسافة", 3)
-        end
-    end
-
     speedBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then UpdateSpeed() end
+        if enterPressed then
+            local val = tonumber(speedBox.Text)
+            if val and val > 0 and val <= 10 then
+                OSCILLATION_FREQUENCY = val
+                speedLabel.Text = "سرعة التذبذب: " .. tostring(val)
+            else
+                speedBox.Text = tostring(OSCILLATION_FREQUENCY)
+                createNotification("ادخل رقم بين 0.1 و 10 للسرعة", 3)
+            end
+        end
     end)
+
     distBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then UpdateDistance() end
+        if enterPressed then
+            local val = tonumber(distBox.Text)
+            if val and val >= 1 and val <= 20 then
+                BASE_FOLLOW_DISTANCE = val
+                distLabel.Text = "المسافة من الهدف: " .. tostring(val)
+            else
+                distBox.Text = tostring(BASE_FOLLOW_DISTANCE)
+                createNotification("ادخل رقم بين 1 و 20 للمسافة", 3)
+            end
+        end
     end)
 
     UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -361,24 +431,22 @@ do
 
     local function StopBang()
         if not BangActive then
-            createNotification("Bang غير مفعل", 3)
+            createNotification("Bang غير مفعل!", 3)
             return
         end
         BangActive = false
-        TargetPlayer = nil
         SetNoclip(false)
-        moveInput.forward = false
-        moveInput.backward = false
-        createNotification("تم إيقاف Bang وإعادة التحكم", 3)
+        TargetPlayer = nil
+        createNotification("تم إيقاف Bang", 3)
     end
 
     startBtn.MouseButton1Click:Connect(function()
-        UpdateSpeed()
-        UpdateDistance()
         StartBang(targetDropdown.Text)
     end)
 
-    stopBtn.MouseButton1Click:Connect(StopBang)
+    stopBtn.MouseButton1Click:Connect(function()
+        StopBang()
+    end)
 
     RS.RenderStepped:Connect(function()
         if BangActive then
@@ -387,11 +455,14 @@ do
     end)
 end
 
--- =========== Movement Page ===========
+--[[
+-- Movement Page (Speed & Jump)
+--]]
+
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -40, 1, -70)
-    page.Position = UDim2.new(0, 20, 0, 70)
+    page.Size = UDim2.new(1, -40, 1, -100)
+    page.Position = UDim2.new(0, 20, 0, 95)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
@@ -400,9 +471,9 @@ do
 
     local speedLabel = Instance.new("TextLabel")
     speedLabel.Size = UDim2.new(0, 200, 0, 30)
-    speedLabel.Position = UDim2.new(0, 20, 0, 20)
+    speedLabel.Position = UDim2.new(0, 20, 0, 30)
     speedLabel.BackgroundTransparency = 1
-    speedLabel.Text = "Speed: 16"
+    speedLabel.Text = "سرعة المشي: 16"
     speedLabel.Font = Enum.Font.GothamBold
     speedLabel.TextSize = 22
     speedLabel.TextColor3 = COLORS.white
@@ -411,7 +482,7 @@ do
 
     local speedBox = Instance.new("TextBox")
     speedBox.Size = UDim2.new(0, 80, 0, 30)
-    speedBox.Position = UDim2.new(0, 230, 0, 20)
+    speedBox.Position = UDim2.new(0, 230, 0, 30)
     speedBox.BackgroundColor3 = COLORS.background
     speedBox.Text = "16"
     speedBox.TextColor3 = COLORS.white
@@ -423,9 +494,9 @@ do
 
     local jumpLabel = Instance.new("TextLabel")
     jumpLabel.Size = UDim2.new(0, 200, 0, 30)
-    jumpLabel.Position = UDim2.new(0, 20, 0, 70)
+    jumpLabel.Position = UDim2.new(0, 20, 0, 75)
     jumpLabel.BackgroundTransparency = 1
-    jumpLabel.Text = "JumpPower: 50"
+    jumpLabel.Text = "قوة القفز: 50"
     jumpLabel.Font = Enum.Font.GothamBold
     jumpLabel.TextSize = 22
     jumpLabel.TextColor3 = COLORS.white
@@ -434,7 +505,7 @@ do
 
     local jumpBox = Instance.new("TextBox")
     jumpBox.Size = UDim2.new(0, 80, 0, 30)
-    jumpBox.Position = UDim2.new(0, 230, 0, 70)
+    jumpBox.Position = UDim2.new(0, 230, 0, 75)
     jumpBox.BackgroundColor3 = COLORS.background
     jumpBox.Text = "50"
     jumpBox.TextColor3 = COLORS.white
@@ -447,7 +518,7 @@ do
     local applyBtn = Instance.new("TextButton")
     applyBtn.Size = UDim2.new(0, 290, 0, 50)
     applyBtn.Position = UDim2.new(0, 20, 0, 120)
-    applyBtn.BackgroundColor3 = COLORS.green
+    applyBtn.BackgroundColor3 = COLORS.purpleAccent
     applyBtn.Text = "تطبيق القيم"
     applyBtn.Font = Enum.Font.GothamBold
     applyBtn.TextSize = 24
@@ -481,11 +552,14 @@ do
     applyBtn.MouseButton1Click:Connect(ApplyMovementSettings)
 end
 
--- =========== Flight Page ===========
+--[[
+-- Flight Page
+--]]
+
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -40, 1, -70)
-    page.Position = UDim2.new(0, 20, 0, 70)
+    page.Size = UDim2.new(1, -40, 1, -100)
+    page.Position = UDim2.new(0, 20, 0, 95)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
@@ -498,7 +572,7 @@ do
     local flyBtn = Instance.new("TextButton")
     flyBtn.Size = UDim2.new(0, 290, 0, 50)
     flyBtn.Position = UDim2.new(0, 20, 0, 20)
-    flyBtn.BackgroundColor3 = COLORS.orange
+    flyBtn.BackgroundColor3 = COLORS.purpleAccent
     flyBtn.Text = "تفعيل/تعطيل الطيران"
     flyBtn.Font = Enum.Font.GothamBold
     flyBtn.TextSize = 24
@@ -629,7 +703,7 @@ do
     end)
 end
 
--- =========== Tabs Logic ===========
+-- Tabs buttons connection
 for i, btn in ipairs(tabButtons) do
     btn.MouseButton1Click:Connect(function()
         setActivePage(i)
@@ -638,7 +712,7 @@ end
 
 setActivePage(1)
 
--- =========== Toggle Menu with F1 ===========
+-- Toggle Menu visibility with F1
 local menuVisible = true
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -648,5 +722,27 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- =========== Initial Setup ===========
-createNotification("تم تحميل قائمة Elite Hack System بنجاح", 4)
+-- Resizing logic for the resizeBtn
+local resizing = false
+resizeBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = true
+    end
+end)
+resizeBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        resizing = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousePos = UIS:GetMouseLocation()
+        local newWidth = math.clamp(mousePos.X - mainFrame.AbsolutePosition.X, 300, 800)
+        local newHeight = math.clamp(mousePos.Y - mainFrame.AbsolutePosition.Y, 250, 600)
+        mainFrame.Size = UDim2.new(0, newWidth, 0, newHeight)
+    end
+end)
+
+-- Notification on load
+createNotification("تم تحميل قائمة Elite Hack System (Purple Edition) بنجاح", 4)
