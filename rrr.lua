@@ -1,35 +1,35 @@
--- Elite V5 PRO 2025 - نسخة محسنة بالكامل مع انيميشن Fade In / Fade Out و UI سلس واحترافي مع دعم عربي سعودي كامل
--- يمكنك تحريك، تصغير، تكبير الواجهة بسهولة، مع إضافة صورة بروفايل اللاعب في صفحة معلومات اللاعب
+-- Elite V5 PRO 2025 - النسخة النهائية المتكاملة مع تحكم كامل وسلس وأداء مستقر
+-- مع نظام ESP متكامل قابل للتفعيل/التعطيل وتغيير ألوانه، نظام Bang مع تحكم سرعة، وتحسينات في Fly بدون ظهور animation السقوط
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- المتغيرات الأساسية  
+-- إعدادات عامة
 local EliteMenu = Instance.new("ScreenGui", game.CoreGui)
 EliteMenu.Name = "EliteV5PRO"
-EliteMenu.Enabled = false -- يبدأ مخفي، سنفعله بعد الانيميشن
+EliteMenu.Enabled = false
 
--- تبويبات المنيو  
-local Tabs = {"الرئيسية", "نظام البانج", "معلومات اللاعب"}
+local Tabs = {"الرئيسية", "نظام البانج", "ESP", "معلومات اللاعب"}
 
--- الحالات  
 local BangActive = false
 local TargetPlayer = nil
+local BangSpeed = 3.5 -- سرعة متابعة الهدف (مسافة أساسية متحركة)
 
--- إعدادات Bang System  
 local OSCILLATION_AMPLITUDE = 2.5
 local OSCILLATION_FREQUENCY = 1.2
-local BASE_FOLLOW_DISTANCE = 3.5
 
--- UI Settings  
+local ESP_Active = false
+local ESP_Color = Color3.fromRGB(255, 0, 0)
+
+-- UI إعدادات الحجم
 local UI_MIN_SIZE = Vector2.new(350, 250)
-local UI_MAX_SIZE = Vector2.new(700, 450)
+local UI_MAX_SIZE = Vector2.new(700, 480)
 
--- دوال مساعدة UI  
+-- دوال مساعدة للـ UI
 local function addUICorner(obj, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius)
@@ -42,7 +42,7 @@ local function addShadow(parent)
     shadow.AnchorPoint = Vector2.new(0.5, 0.5)
     shadow.BackgroundTransparency = 1
     shadow.Image = "rbxassetid://4767419729" -- Shadow asset
-    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
     shadow.ImageTransparency = 0.6
     shadow.Size = UDim2.new(1, 14, 1, 14)
     shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -74,7 +74,7 @@ local function createNotification(text, duration)
     end)
 end
 
--- نوكليب كما في سكربتك  
+-- نوكليب
 local function SetNoclip(enabled)
     if not LocalPlayer.Character then return end
     for _, part in pairs(LocalPlayer.Character:GetChildren()) do
@@ -88,20 +88,16 @@ end
 RS:BindToRenderStep("DisablePlayerInput", Enum.RenderPriority.Character.Value + 4, function()
     if BangActive and LocalPlayer.Character then
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = true
-        end
+        if humanoid then humanoid.PlatformStand = true end
     else
         if LocalPlayer.Character then
             local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.PlatformStand = false
-            end
+            if humanoid then humanoid.PlatformStand = false end
         end
     end
 end)
 
--- متابعة الهدف مع تذبذب طبيعي  
+-- متابعة الهدف مع تذبذب وسرعة متحكم بها
 local function FollowTarget(dt)
     if not BangActive or not TargetPlayer then return end
     if not TargetPlayer.Character then return end
@@ -115,7 +111,7 @@ local function FollowTarget(dt)
     local time = tick()
     local oscillation = math.sin(time * OSCILLATION_FREQUENCY * math.pi * 2) * OSCILLATION_AMPLITUDE
 
-    local basePosition = targetHRP.Position - targetLookVector * BASE_FOLLOW_DISTANCE
+    local basePosition = targetHRP.Position - targetLookVector * BangSpeed
     local desiredPosition = basePosition + targetLookVector * oscillation
 
     local vectorToDesired = desiredPosition - targetHRP.Position
@@ -123,7 +119,10 @@ local function FollowTarget(dt)
         desiredPosition = basePosition
     end
 
-    localHRP.CFrame = CFrame.new(desiredPosition, targetHRP.Position)
+    -- تعويض حركة سلسة بتحديث CFrame تدريجياً  
+    local currentPos = localHRP.Position
+    local lerpPos = currentPos:Lerp(desiredPosition, 0.15)
+    localHRP.CFrame = CFrame.new(lerpPos, targetHRP.Position)
 end
 
 RS:BindToRenderStep("EliteBangSystem", Enum.RenderPriority.Character.Value + 3, function(dt)
@@ -132,17 +131,15 @@ RS:BindToRenderStep("EliteBangSystem", Enum.RenderPriority.Character.Value + 3, 
     end
 end)
 
--- البحث عن لاعب باسم  
+-- البحث عن لاعب باسم
 local function GetPlayerByName(name)
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Name:lower():find(name:lower()) then
-            return plr
-        end
+        if plr.Name:lower():find(name:lower()) then return plr end
     end
     return nil
 end
 
--- بدء وإيقاف Bang  
+-- تشغيل وإيقاف Bang
 local function StartBang(targetName)
     local target = GetPlayerByName(targetName)
     if not target then
@@ -163,19 +160,89 @@ local function StopBang()
     createNotification("تم إيقاف نظام البانج وإعادة التحكم", 3)
 end
 
--- إنشاء الواجهة - Frame رئيسي مع الظل  
+-- ESP System --  
+local ESP_Boxes = {}
+local ESP_Texts = {}
+
+local function CreateESPForPlayer(plr)
+    if ESP_Boxes[plr] then return end
+
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "ESPBox"
+    box.Adornee = nil
+    box.AlwaysOnTop = true
+    box.ZIndex = 10
+    box.Transparency = 0.6
+    box.Color3 = ESP_Color
+    box.Size = Vector3.new(4, 6, 1)
+    box.Parent = workspace.CurrentCamera
+
+    local text = Instance.new("BillboardGui")
+    text.Name = "ESPText"
+    text.Adornee = nil
+    text.AlwaysOnTop = true
+    text.Size = UDim2.new(0, 150, 0, 40)
+    text.StudsOffset = Vector3.new(0, 3, 0)
+    text.Parent = workspace.CurrentCamera
+
+    local label = Instance.new("TextLabel", text)
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.TextColor3 = ESP_Color
+    label.TextStrokeTransparency = 0.5
+    label.Text = plr.Name
+
+    ESP_Boxes[plr] = box
+    ESP_Texts[plr] = text
+end
+
+local function RemoveESPForPlayer(plr)
+    if ESP_Boxes[plr] then
+        ESP_Boxes[plr]:Destroy()
+        ESP_Boxes[plr] = nil
+    end
+    if ESP_Texts[plr] then
+        ESP_Texts[plr]:Destroy()
+        ESP_Texts[plr] = nil
+    end
+end
+
+local function UpdateESP()
+    if not ESP_Active then return end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if not ESP_Boxes[plr] then
+                CreateESPForPlayer(plr)
+            end
+            local hrp = plr.Character.HumanoidRootPart
+            ESP_Boxes[plr].Adornee = hrp
+            ESP_Boxes[plr].Color3 = ESP_Color
+            ESP_Texts[plr].Adornee = hrp
+            ESP_Texts[plr].TextLabel.TextColor3 = ESP_Color
+            ESP_Texts[plr].TextLabel.Text = plr.Name
+        else
+            RemoveESPForPlayer(plr)
+        end
+    end
+end
+
+RS:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value + 1, UpdateESP)
+
+-- UI الرئيسي  
 local MainFrame = Instance.new("Frame", EliteMenu)
-MainFrame.Size = UDim2.new(0, 600, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 650, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -240)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 10, 70)
 MainFrame.BorderSizePixel = 0
 MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 addUICorner(MainFrame, 20)
 addShadow(MainFrame)
 
--- خاصية السحب  
+-- سحب الواجهة  
 local dragging, dragInput, dragStart, startPos
-
 local function updatePosition(input)
     local delta = input.Position - dragStart
     MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -187,9 +254,7 @@ MainFrame.InputBegan:Connect(function(input)
         dragStart = input.Position
         startPos = MainFrame.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
         end)
     end
 end)
@@ -201,18 +266,15 @@ MainFrame.InputChanged:Connect(function(input)
 end)
 
 UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        updatePosition(input)
-    end
+    if input == dragInput and dragging then updatePosition(input) end
 end)
 
--- تكبير وتصغير Frame مع أنيميشن سلس  
+-- تكبير وتصغير مع انيميشن  
 local scale = 1
 local function scaleUI(amount)
     scale = math.clamp(scale + amount, 0.6, 1.5)
-    local newSize = UDim2.new(0, 600 * scale, 0, 400 * scale)
-    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = newSize})
-    tween:Play()
+    local newSize = UDim2.new(0, 650 * scale, 0, 480 * scale)
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = newSize}):Play()
 end
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -222,7 +284,7 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- عنوان المنيو  
+-- عنوان  
 local TitleLabel = Instance.new("TextLabel", MainFrame)
 TitleLabel.Size = UDim2.new(1, 0, 0, 50)
 TitleLabel.Position = UDim2.new(0, 0, 0, 0)
@@ -230,12 +292,12 @@ TitleLabel.BackgroundTransparency = 1
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 28
 TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
-TitleLabel.Text = "Elite V5 PRO 2025 - نسخة عربية سعودية"
+TitleLabel.Text = "Elite V5 PRO 2025 - النسخة المتكاملة"
 TitleLabel.TextScaled = true
 
--- تاب قائمة التبويبات  
+-- تبويبات  
 local TabsFrame = Instance.new("Frame", MainFrame)
-TabsFrame.Size = UDim2.new(0, 140, 1, -50)
+TabsFrame.Size = UDim2.new(0, 160, 1, -50)
 TabsFrame.Position = UDim2.new(0, 0, 0, 50)
 TabsFrame.BackgroundColor3 = Color3.fromRGB(20, 5, 40)
 TabsFrame.BorderSizePixel = 0
@@ -244,14 +306,7 @@ addShadow(TabsFrame)
 
 local Pages = {}
 local Buttons = {}
-
 local selectedTabIndex = 1
-
-local function clearPage(page)
-    for _, child in pairs(page:GetChildren()) do
-        child:Destroy()
-    end
-end
 
 local function switchTab(index)
     if selectedTabIndex == index then return end
@@ -262,7 +317,6 @@ local function switchTab(index)
     selectedTabIndex = index
 end
 
--- إنشاء أزرار التبويبات مع تدرج لوني جميل  
 for i, tabName in ipairs(Tabs) do
     local btn = Instance.new("TextButton", TabsFrame)
     btn.Size = UDim2.new(1, -20, 0, 50)
@@ -289,176 +343,218 @@ for i, tabName in ipairs(Tabs) do
     Buttons[i] = btn
 end
 
--- إنشاء صفحات التبويبات  
 for i = 1, #Tabs do
     local page = Instance.new("Frame", MainFrame)
-    page.Size = UDim2.new(1, -140, 1, -50)
-    page.Position = UDim2.new(0, 140, 0, 50)
+    page.Size = UDim2.new(1, -160, 1, -50)
+    page.Position = UDim2.new(0, 160, 0, 50)
     page.BackgroundTransparency = 1
     page.Visible = (i == 1)
     Pages[i] = page
 end
 
--- صفحة 1: الرئيسية (Speed Hack + Fly + Jump Boost)  
+-- الصفحة 1: الرئيسية مع تحكم كامل  
 do
     local page = Pages[1]
 
-    -- Speed Hack Toggle  
-    local speedToggle = Instance.new("TextButton", page)
-    speedToggle.Size = UDim2.new(0, 200, 0, 50)
-    speedToggle.Position = UDim2.new(0, 30, 0, 20)
-    speedToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
-    speedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    speedToggle.Font = Enum.Font.GothamBold
-    speedToggle.TextSize = 20
-    speedToggle.Text = "تفعيل زيادة السرعة"
-    addUICorner(speedToggle, 15)
+    -- Speed Control Label  
+    local speedLabel = Instance.new("TextLabel", page)
+    speedLabel.Size = UDim2.new(0, 180, 0, 30)
+    speedLabel.Position = UDim2.new(0, 20, 0, 20)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 20
+    speedLabel.TextColor3 = Color3.fromRGB(230, 230, 255)
+    speedLabel.Text = "سرعة المشي (WalkSpeed): 16"
 
-    local speedActive = false
-    local speedValue = 30
+    local walkSpeedSlider = Instance.new("TextBox", page)
+    walkSpeedSlider.Size = UDim2.new(0, 100, 0, 30)
+    walkSpeedSlider.Position = UDim2.new(0, 20, 0, 60)
+    walkSpeedSlider.PlaceholderText = "أدخل سرعة المشي"
+    walkSpeedSlider.Text = "16"
+    walkSpeedSlider.Font = Enum.Font.GothamBold
+    walkSpeedSlider.TextSize = 18
+    walkSpeedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    walkSpeedSlider.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    addUICorner(walkSpeedSlider, 10)
 
-    local function setPlayerSpeed(speed)
-        if LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = speed
+    walkSpeedSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local val = tonumber(walkSpeedSlider.Text)
+            if val and val >= 8 and val <= 100 then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = val
+                    speedLabel.Text = ("سرعة المشي (WalkSpeed): %d"):format(val)
+                    createNotification("تم تعديل سرعة المشي إلى " .. val, 2)
+                end
+            else
+                createNotification("الرجاء إدخال قيمة بين 8 و 100", 3)
+                walkSpeedSlider.Text = tostring(LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed or 16)
             end
-        end
-    end
-
-    speedToggle.MouseButton1Click:Connect(function()
-        speedActive = not speedActive
-        if speedActive then
-            setPlayerSpeed(speedValue)
-            speedToggle.Text = "إيقاف زيادة السرعة"
-            createNotification("تم تفعيل زيادة السرعة", 2)
-        else
-            setPlayerSpeed(16)
-            speedToggle.Text = "تفعيل زيادة السرعة"
-            createNotification("تم إيقاف زيادة السرعة", 2)
         end
     end)
 
-    -- Fly Mode Toggle  
+    -- Jump Power Control  
+    local jumpLabel = Instance.new("TextLabel", page)
+    jumpLabel.Size = UDim2.new(0, 180, 0, 30)
+    jumpLabel.Position = UDim2.new(0, 220, 0, 20)
+    jumpLabel.BackgroundTransparency = 1
+    jumpLabel.Font = Enum.Font.GothamBold
+    jumpLabel.TextSize = 20
+    jumpLabel.TextColor3 = Color3.fromRGB(230, 230, 255)
+    jumpLabel.Text = "قوة القفز (JumpPower): 50"
+
+    local jumpPowerSlider = Instance.new("TextBox", page)
+    jumpPowerSlider.Size = UDim2.new(0, 100, 0, 30)
+    jumpPowerSlider.Position = UDim2.new(0, 220, 0, 60)
+    jumpPowerSlider.PlaceholderText = "أدخل قوة القفز"
+    jumpPowerSlider.Text = "50"
+    jumpPowerSlider.Font = Enum.Font.GothamBold
+    jumpPowerSlider.TextSize = 18
+    jumpPowerSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jumpPowerSlider.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    addUICorner(jumpPowerSlider, 10)
+
+    jumpPowerSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local val = tonumber(jumpPowerSlider.Text)
+            if val and val >= 20 and val <= 150 then
+                local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.JumpPower = val
+                    jumpLabel.Text = ("قوة القفز (JumpPower): %d"):format(val)
+                    createNotification("تم تعديل قوة القفز إلى " .. val, 2)
+                end
+            else
+                createNotification("الرجاء إدخال قيمة بين 20 و 150", 3)
+                jumpPowerSlider.Text = tostring(LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") and LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower or 50)
+            end
+        end
+    end)
+
+    -- Fly Toggle  
     local flyToggle = Instance.new("TextButton", page)
-    flyToggle.Size = UDim2.new(0, 200, 0, 50)
-    flyToggle.Position = UDim2.new(0, 250, 0, 20)
-    flyToggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
-    flyToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    flyToggle.Size = UDim2.new(0, 140, 0, 40)
+    flyToggle.Position = UDim2.new(0, 20, 0, 120)
+    flyToggle.Text = "تفعيل الطيران"
     flyToggle.Font = Enum.Font.GothamBold
     flyToggle.TextSize = 20
-    flyToggle.Text = "تفعيل وضع الطيران"
+    flyToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    flyToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     addUICorner(flyToggle, 15)
 
-    local flyActive = false
+    local flying = false
     local flySpeed = 50
-    local bv, bg = nil, nil
+    local flyBodyVelocity, flyBodyGyro
 
-    local function noclipMovement()
-        if not LocalPlayer.Character then return end
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        local cam = workspace.CurrentCamera
-        local moveDir = Vector3.new(0,0,0)
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + cam.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - cam.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - cam.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + cam.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then
-            moveDir = moveDir + Vector3.new(0, 1, 0)
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) or UIS:IsKeyDown(Enum.KeyCode.RightControl) then
-            moveDir = moveDir - Vector3.new(0, 1, 0)
-        end
-
-        if moveDir.Magnitude > 0 then
-            moveDir = moveDir.Unit * flySpeed
-        else
-            moveDir = Vector3.new(0, 0, 0)
-        end
-
-        if bv and bg then
-            bv.Velocity = moveDir
-            bg.CFrame = cam.CFrame
+    local function disableFallAnimation(character)
+        if not character then return end
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
         end
     end
 
-    local flyConnection = nil
-
     flyToggle.MouseButton1Click:Connect(function()
-        flyActive = not flyActive
-        if flyActive then
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
+        flying = not flying
+        if flying then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local hrp = character.HumanoidRootPart
 
-            if hrp then
-                bv = Instance.new("BodyVelocity", hrp)
-                bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-                bv.Velocity = Vector3.new(0,0,0)
+                flyBodyVelocity = Instance.new("BodyVelocity")
+                flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                flyBodyVelocity.Parent = hrp
 
-                bg = Instance.new("BodyGyro", hrp)
-                bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-                bg.CFrame = hrp.CFrame
+                flyBodyGyro = Instance.new("BodyGyro")
+                flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+                flyBodyGyro.CFrame = hrp.CFrame
+                flyBodyGyro.Parent = hrp
+
+                disableFallAnimation(character)
+                createNotification("تم تفعيل الطيران بدون ظهور تأثير السقوط", 3)
+            else
+                createNotification("لا يمكن تفعيل الطيران الآن.", 3)
+                flying = false
             end
-
-            flyConnection = RS:BindToRenderStep("FlyMovement", Enum.RenderPriority.Character.Value + 1, noclipMovement)
-            createNotification("تم تفعيل وضع الطيران", 2)
-            flyToggle.Text = "إيقاف وضع الطيران"
+            flyToggle.Text = "إيقاف الطيران"
+            flyToggle.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
         else
-            if flyConnection then
-                RS:UnbindFromRenderStep("FlyMovement")
-                flyConnection = nil
+            if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+            if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+            if LocalPlayer.Character then
+                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+                end
             end
-            if bv then bv:Destroy() bv = nil end
-            if bg then bg:Destroy() bg = nil end
-            createNotification("تم إيقاف وضع الطيران", 2)
-            flyToggle.Text = "تفعيل وضع الطيران"
+            createNotification("تم إيقاف الطيران", 3)
+            flyToggle.Text = "تفعيل الطيران"
+            flyToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
         end
     end)
 
-    -- Jump Boost Toggle  
-    local jumpToggle = Instance.new("TextButton", page)
-    jumpToggle.Size = UDim2.new(0, 200, 0, 50)
-    jumpToggle.Position = UDim2.new(0, 30, 0, 90)
-    jumpToggle.BackgroundColor3 = Color3.fromRGB(200, 100, 20)
-    jumpToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    jumpToggle.Font = Enum.Font.GothamBold
-    jumpToggle.TextSize = 20
-    jumpToggle.Text = "تفعيل تعزيز القفز"
-    addUICorner(jumpToggle, 15)
+    -- تحكم سرعة الطيران (اختياري)
+    local flySpeedLabel = Instance.new("TextLabel", page)
+    flySpeedLabel.Size = UDim2.new(0, 160, 0, 25)
+    flySpeedLabel.Position = UDim2.new(0, 180, 0, 130)
+    flySpeedLabel.BackgroundTransparency = 1
+    flySpeedLabel.Font = Enum.Font.GothamBold
+    flySpeedLabel.TextSize = 16
+    flySpeedLabel.TextColor3 = Color3.fromRGB(230, 230, 255)
+    flySpeedLabel.Text = "سرعة الطيران: 50"
 
-    local jumpActive = false
-    local jumpPower = 100
+    local flySpeedBox = Instance.new("TextBox", page)
+    flySpeedBox.Size = UDim2.new(0, 100, 0, 25)
+    flySpeedBox.Position = UDim2.new(0, 180, 0, 160)
+    flySpeedBox.PlaceholderText = "أدخل سرعة الطيران"
+    flySpeedBox.Text = "50"
+    flySpeedBox.Font = Enum.Font.GothamBold
+    flySpeedBox.TextSize = 16
+    flySpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    flySpeedBox.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    addUICorner(flySpeedBox, 10)
 
-    jumpToggle.MouseButton1Click:Connect(function()
-        jumpActive = not jumpActive
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if jumpActive then
-            if humanoid then
-                humanoid.JumpPower = jumpPower
+    flySpeedBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local val = tonumber(flySpeedBox.Text)
+            if val and val >= 10 and val <= 150 then
+                flySpeed = val
+                flySpeedLabel.Text = ("سرعة الطيران: %d"):format(val)
+                createNotification("تم تعديل سرعة الطيران إلى " .. val, 2)
+            else
+                createNotification("الرجاء إدخال قيمة بين 10 و 150", 3)
+                flySpeedBox.Text = tostring(flySpeed)
             end
-            jumpToggle.Text = "إيقاف تعزيز القفز"
-            createNotification("تم تفعيل تعزيز القفز", 2)
-        else
-            if humanoid then
-                humanoid.JumpPower = 50
+        end
+    end)
+
+    -- تحديث حركة الطيران في RenderStep  
+    RS:BindToRenderStep("FlyMovement", Enum.RenderPriority.Character.Value + 5, function()
+        if flying and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and flyBodyVelocity and flyBodyGyro then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            local cam = workspace.CurrentCamera
+            local moveDirection = Vector3.new(0,0,0)
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection = moveDirection - Vector3.new(0,1,0) end
+
+            if moveDirection.Magnitude > 0 then
+                moveDirection = moveDirection.Unit * flySpeed
             end
-            jumpToggle.Text = "تفعيل تعزيز القفز"
-            createNotification("تم إيقاف تعزيز القفز", 2)
+
+            flyBodyVelocity.Velocity = moveDirection
+            flyBodyGyro.CFrame = cam.CFrame
         end
     end)
 end
 
--- صفحة 2: نظام البانج Bang System  
+-- الصفحة 2: نظام البانج مع تحكم سرعة  
 do
     local page = Pages[2]
 
@@ -502,6 +598,40 @@ do
     StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     addUICorner(StopBtn, 15)
 
+    local speedLabel = Instance.new("TextLabel", page)
+    speedLabel.Size = UDim2.new(1, -40, 0, 30)
+    speedLabel.Position = UDim2.new(0, 20, 0, 165)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 20
+    speedLabel.TextColor3 = Color3.fromRGB(230, 230, 255)
+    speedLabel.Text = ("سرعة متابعة الهدف: %.1f"):format(BangSpeed)
+
+    local speedSlider = Instance.new("TextBox", page)
+    speedSlider.Size = UDim2.new(1, -40, 0, 30)
+    speedSlider.Position = UDim2.new(0, 20, 0, 200)
+    speedSlider.PlaceholderText = "أدخل سرعة متابعة الهدف (1.0 - 15.0)"
+    speedSlider.Text = tostring(BangSpeed)
+    speedSlider.Font = Enum.Font.GothamBold
+    speedSlider.TextSize = 18
+    speedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedSlider.BackgroundColor3 = Color3.fromRGB(50, 15, 80)
+    addUICorner(speedSlider, 15)
+
+    speedSlider.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local val = tonumber(speedSlider.Text)
+            if val and val >= 1 and val <= 15 then
+                BangSpeed = val
+                speedLabel.Text = ("سرعة متابعة الهدف: %.1f"):format(BangSpeed)
+                createNotification("تم تعديل سرعة متابعة الهدف إلى " .. val, 2)
+            else
+                createNotification("الرجاء إدخال قيمة بين 1.0 و 15.0", 3)
+                speedSlider.Text = tostring(BangSpeed)
+            end
+        end
+    end)
+
     StartBtn.MouseButton1Click:Connect(function()
         local name = InputBox.Text
         if name == "" then
@@ -519,104 +649,192 @@ do
     end)
 end
 
--- صفحة 3: معلومات اللاعب مع صورة البروفايل  
+-- الصفحة 3: نظام ESP مع خيارات تحكم  
 do
     local page = Pages[3]
 
-    local infoLabel = Instance.new("TextLabel", page)
-    infoLabel.Size = UDim2.new(1, -40, 0, 40)
-    infoLabel.Position = UDim2.new(0, 20, 0, 10)
-    infoLabel.BackgroundTransparency = 1
-    infoLabel.Font = Enum.Font.GothamBold
-    infoLabel.TextSize = 26
-    infoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
-    infoLabel.Text = "معلومات حسابك والبيئة المحيطة"
-    infoLabel.TextXAlignment = Enum.TextXAlignment.Center
+    local LabelTitle = Instance.new("TextLabel", page)
+    LabelTitle.Size = UDim2.new(1, -40, 0, 40)
+    LabelTitle.Position = UDim2.new(0, 20, 0, 10)
+    LabelTitle.BackgroundTransparency = 1
+    LabelTitle.Font = Enum.Font.GothamBold
+    LabelTitle.TextSize = 26
+    LabelTitle.TextColor3 = Color3.fromRGB(230, 230, 250)
+    LabelTitle.Text = "نظام ESP - تفعيل وتعطيل وتغيير اللون"
+    LabelTitle.TextXAlignment = Enum.TextXAlignment.Center
 
-    local profileImage = Instance.new("ImageLabel", page)
-    profileImage.Size = UDim2.new(0, 150, 0, 150)
-    profileImage.Position = UDim2.new(0, 20, 0, 60)
-    profileImage.BackgroundTransparency = 1
-    profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(LocalPlayer.UserId) .. "&w=420&h=420"
-    addUICorner(profileImage, 75)
-    addShadow(profileImage)
+    local toggleESP = Instance.new("TextButton", page)
+    toggleESP.Size = UDim2.new(0.5, -20, 0, 45)
+    toggleESP.Position = UDim2.new(0, 20, 0, 60)
+    toggleESP.Text = "تفعيل ESP"
+    toggleESP.Font = Enum.Font.GothamBold
+    toggleESP.TextSize = 22
+    toggleESP.BackgroundColor3 = Color3.fromRGB(0, 180, 70)
+    toggleESP.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addUICorner(toggleESP, 15)
 
-    local infoText = Instance.new("TextLabel", page)
-    infoText.Size = UDim2.new(1, -200, 1, -70)
-    infoText.Position = UDim2.new(0, 180, 0, 60)
-    infoText.BackgroundTransparency = 1
-    infoText.Font = Enum.Font.Code
-    infoText.TextSize = 20
-    infoText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    infoText.TextXAlignment = Enum.TextXAlignment.Left
-    infoText.TextYAlignment = Enum.TextYAlignment.Top
-    infoText.TextWrapped = true
+    local colorLabel = Instance.new("TextLabel", page)
+    colorLabel.Size = UDim2.new(0.5, -20, 0, 30)
+    colorLabel.Position = UDim2.new(0.5, 10, 0, 65)
+    colorLabel.BackgroundTransparency = 1
+    colorLabel.Font = Enum.Font.GothamBold
+    colorLabel.TextSize = 18
+    colorLabel.TextColor3 = Color3.fromRGB(230, 230, 255)
+    colorLabel.Text = "لون ESP: أحمر"
 
-    local function updatePlayerInfo()
-        local char = LocalPlayer.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local pos = hrp and hrp.Position or Vector3.new(0, 0, 0)
+    local colors = {
+        {Name = "أحمر", Color = Color3.fromRGB(255, 0, 0)},
+        {Name = "أزرق", Color = Color3.fromRGB(0, 170, 255)},
+        {Name = "أخضر", Color = Color3.fromRGB(0, 255, 0)},
+        {Name = "أصفر", Color = Color3.fromRGB(255, 255, 0)},
+        {Name = "بنفسجي", Color = Color3.fromRGB(170, 0, 255)},
+    }
 
-        local health = humanoid and math.floor(humanoid.Health) or 0
-        local maxHealth = humanoid and math.floor(humanoid.MaxHealth) or 0
+    local currentColorIndex = 1
 
-        return {
-            Name = LocalPlayer.Name,
-            UserId = LocalPlayer.UserId,
-            Health = health,
-            MaxHealth = maxHealth,
-            Position = pos,
-            GameId = game.GameId,
-            PlaceId = game.PlaceId,
-            Time = os.date("%Y-%m-%d %H:%M:%S"),
-        }
-    end
+    local btnChangeColor = Instance.new("TextButton", page)
+    btnChangeColor.Size = UDim2.new(0.5, -20, 0, 40)
+    btnChangeColor.Position = UDim2.new(0, 20, 0, 110)
+    btnChangeColor.Text = "تغيير لون ESP"
+    btnChangeColor.Font = Enum.Font.GothamBold
+    btnChangeColor.TextSize = 20
+    btnChangeColor.BackgroundColor3 = Color3.fromRGB(70, 20, 130)
+    btnChangeColor.TextColor3 = Color3.fromRGB(255, 255, 255)
+    addUICorner(btnChangeColor, 15)
 
-    RS:BindToRenderStep("UpdatePlayerInfo", Enum.RenderPriority.First.Value, function()
-        local data = updatePlayerInfo()
-        local infoStr = string.format(
-            [[
-الاسم: %s
-معرف المستخدم: %d
-الصحة: %d / %d
-الموقع: X=%.2f, Y=%.2f, Z=%.2f
-معرف اللعبة: %s
-معرف المكان: %s
-التاريخ والوقت: %s
-]],
-            data.Name, data.UserId, data.Health, data.MaxHealth,
-            data.Position.X, data.Position.Y, data.Position.Z,
-            tostring(data.GameId), tostring(data.PlaceId), data.Time
-        )
-        infoText.Text = infoStr
+    toggleESP.MouseButton1Click:Connect(function()
+        ESP_Active = not ESP_Active
+        if ESP_Active then
+            toggleESP.Text = "إيقاف ESP"
+            toggleESP.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+            createNotification("تم تفعيل ESP", 2)
+        else
+            toggleESP.Text = "تفعيل ESP"
+            toggleESP.BackgroundColor3 = Color3.fromRGB(0, 180, 70)
+            createNotification("تم إيقاف ESP", 2)
+            -- إزالة كل الـ ESP عند الإيقاف
+            for plr, _ in pairs(ESP_Boxes) do
+                RemoveESPForPlayer(plr)
+            end
+        end
+    end)
+
+    btnChangeColor.MouseButton1Click:Connect(function()
+        currentColorIndex = currentColorIndex + 1
+        if currentColorIndex > #colors then currentColorIndex = 1 end
+        ESP_Color = colors[currentColorIndex].Color
+        colorLabel.Text = "لون ESP: " .. colors[currentColorIndex].Name
+        createNotification("تم تغيير لون ESP إلى " .. colors[currentColorIndex].Name, 2)
     end)
 end
 
--- تشغيل الواجهة مع انيميشن Fade In  
-EliteMenu.Enabled = true
-MainFrame.BackgroundTransparency = 1
-TweenService:Create(MainFrame, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+-- الصفحة 4: معلومات اللاعب مع صورة البروفايل  
+do
+    local page = Pages[4]
 
--- عند ولادة الشخصية، إعادة ضبط السرعة  
-local function resetSpeed()
-    if LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
+    local LabelTitle = Instance.new("TextLabel", page)
+    LabelTitle.Size = UDim2.new(1, -40, 0, 40)
+    LabelTitle.Position = UDim2.new(0, 20, 0, 10)
+    LabelTitle.BackgroundTransparency = 1
+    LabelTitle.Font = Enum.Font.GothamBold
+    LabelTitle.TextSize = 26
+    LabelTitle.TextColor3 = Color3.fromRGB(230, 230, 250)
+    LabelTitle.Text = "معلومات اللاعب"
+    LabelTitle.TextXAlignment = Enum.TextXAlignment.Center
+
+    -- صورة البروفايل
+    local profileImage = Instance.new("ImageLabel", page)
+    profileImage.Size = UDim2.new(0, 140, 0, 140)
+    profileImage.Position = UDim2.new(0, 20, 0, 60)
+    profileImage.BackgroundTransparency = 1
+    profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+    addUICorner(profileImage, 70)
+    addShadow(profileImage)
+
+    local infoFrame = Instance.new("Frame", page)
+    infoFrame.Size = UDim2.new(0, 300, 0, 140)
+    infoFrame.Position = UDim2.new(0, 180, 0, 60)
+    infoFrame.BackgroundColor3 = Color3.fromRGB(30, 10, 70)
+    addUICorner(infoFrame, 20)
+    addShadow(infoFrame)
+
+    local usernameLabel = Instance.new("TextLabel", infoFrame)
+    usernameLabel.Size = UDim2.new(1, -20, 0, 40)
+    usernameLabel.Position = UDim2.new(0, 10, 0, 10)
+    usernameLabel.BackgroundTransparency = 1
+    usernameLabel.Font = Enum.Font.GothamBold
+    usernameLabel.TextSize = 26
+    usernameLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
+    usernameLabel.Text = "اسم المستخدم: " .. LocalPlayer.Name
+    usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local useridLabel = Instance.new("TextLabel", infoFrame)
+    useridLabel.Size = UDim2.new(1, -20, 0, 30)
+    useridLabel.Position = UDim2.new(0, 10, 0, 60)
+    useridLabel.BackgroundTransparency = 1
+    useridLabel.Font = Enum.Font.Gotham
+    useridLabel.TextSize = 20
+    useridLabel.TextColor3 = Color3.fromRGB(210, 210, 255)
+    useridLabel.Text = "معرف المستخدم (UserId): " .. tostring(LocalPlayer.UserId)
+    useridLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- معلومات حالة الاتصال  
+    local pingLabel = Instance.new("TextLabel", infoFrame)
+    pingLabel.Size = UDim2.new(1, -20, 0, 30)
+    pingLabel.Position = UDim2.new(0, 10, 0, 95)
+    pingLabel.BackgroundTransparency = 1
+    pingLabel.Font = Enum.Font.Gotham
+    pingLabel.TextSize = 20
+    pingLabel.TextColor3 = Color3.fromRGB(210, 210, 255)
+    pingLabel.Text = "جودة الاتصال: جاري التحديث..."
+    pingLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- تحديث Ping كل 3 ثواني  
+    task.spawn(function()
+        while EliteMenu.Enabled do
+            local ping = LocalPlayer:GetNetworkPing() * 1000
+            pingLabel.Text = ("جودة الاتصال: %d ms"):format(math.floor(ping))
+            task.wait(3)
         end
-    end
+    end)
 end
 
-LocalPlayer.CharacterAdded:Connect(function(char)
-    task.wait(1)
-    if not BangActive then
-        resetSpeed()
+-- زر إظهار/إخفاء القائمة  
+local toggleKey = Enum.KeyCode.RightControl -- تعديل المفتاح حسب الرغبة
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == toggleKey then
+        EliteMenu.Enabled = not EliteMenu.Enabled
+        if EliteMenu.Enabled then
+            createNotification("تم فتح قائمة Elite V5 PRO", 2)
+        else
+            createNotification("تم إغلاق قائمة Elite V5 PRO", 2)
+        end
     end
 end)
 
-resetSpeed()
+-- Animation FadeIn & FadeOut للقائمة  
+EliteMenu:GetPropertyChangedSignal("Enabled"):Connect(function()
+    if EliteMenu.Enabled then
+        MainFrame.BackgroundTransparency = 1
+        TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+    else
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1}):Play()
+    end
+end)
 
-createNotification("Elite V5 PRO مفعل تلقائيًا مع واجهة سلسة وعربية سعودية", 4)
+-- بدء القائمة مقفلة، لتفعيلها اضغط RightControl  
+createNotification("اضغط RightControl لفتح القائمة", 4)
+
+-- تحسينات عامة:
+-- - حركات السحب سلسة
+-- - تكبير وتصغير باستخدام عجلة الماوس
+-- - ألوان متناسقة وواجهة احترافية  
+-- - تحكم كامل وسلس في جميع الخصائص المطلوبة  
+-- - نظام بانج (Bang) مع تحكم بالسرعة ونوكليب تلقائي  
+-- - ESP متكامل مع تفعيل/تعطيل وتغيير ألوان  
+-- - نظام طيران بدون ظهور animation سقوط  
+
+-- ملاحظة أخيرة:
+-- يفضل اختبار كل خاصية في بيئة آمنة والتأكد من أن كل شيء يعمل بدون تعارض مع السكربتات الأخرى
 
