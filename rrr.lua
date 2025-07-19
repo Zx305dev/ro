@@ -1,17 +1,23 @@
--- تنظيف المينيو القديم
+-- Elite V5 PRO 2025 - Full Enhanced Script
+-- Author: FNLOXER-inspired pro version
+
+-- Cleanup old menu if exists
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
+-- Services
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+-- Create main GUI container
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
-EliteMenu.ResetOnSpawn = false
 EliteMenu.Parent = game.CoreGui
+EliteMenu.ResetOnSpawn = false
 
+-- Utility: Add UICorner to UI elements
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 12)
@@ -19,6 +25,7 @@ local function addUICorner(parent, radius)
     return corner
 end
 
+-- Notification system
 local function createNotification(text, duration)
     duration = duration or 3
     local notifGui = Instance.new("ScreenGui", game.CoreGui)
@@ -54,16 +61,18 @@ local function createNotification(text, duration)
     end)
 end
 
+-- Main Frame Setup
 local MainFrame = Instance.new("Frame", EliteMenu)
-local defaultSize = UDim2.new(0, 560, 0, 360)
+local defaultSize = UDim2.new(0, 560, 0, 500)
 local minimizedSize = UDim2.new(0, 560, 0, 45)
 
 MainFrame.Size = defaultSize
-MainFrame.Position = UDim2.new(0.5, -280, 0.5, -180)
+MainFrame.Position = UDim2.new(0.5, -280, 0.5, -250)
 MainFrame.BackgroundColor3 = Color3.fromRGB(45, 15, 60)
 MainFrame.BorderSizePixel = 0
 addUICorner(MainFrame, 20)
 
+-- Title Label
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
@@ -73,6 +82,7 @@ Title.TextSize = 28
 Title.TextColor3 = Color3.fromRGB(255, 215, 255)
 Title.Text = "🔥 Elite V5 PRO 2025 🔥"
 
+-- Close Button
 local CloseBtn = Instance.new("TextButton", MainFrame)
 CloseBtn.Size = UDim2.new(0, 40, 0, 40)
 CloseBtn.Position = UDim2.new(1, -45, 0, 0)
@@ -94,6 +104,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     createNotification("تم إغلاق Elite V5 PRO")
 end)
 
+-- Minimize Button
 local MinimizeBtn = Instance.new("TextButton", MainFrame)
 MinimizeBtn.Size = UDim2.new(0, 40, 0, 40)
 MinimizeBtn.Position = UDim2.new(1, -90, 0, 0)
@@ -109,195 +120,621 @@ local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = defaultSize}):Play()
+        task.delay(0.4, function()
+            for _, p in pairs(Pages) do p.Visible = true end
+        end)
         isMinimized = false
     else
         TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = minimizedSize}):Play()
+        task.delay(0.4, function()
+            for _, p in pairs(Pages) do p.Visible = false end
+        end)
         isMinimized = true
     end
 end)
 
-----------------------------------------
--- إنشاء التبويب الرئيسي (صفحة واحدة فقط)
-----------------------------------------
+-- Tabs Setup
+local Tabs = {"الرئيسية", "Bang", "Emote", "معلومات اللاعب"}
+local TabButtons = {}
+Pages = {}
 
-local page = Instance.new("Frame", MainFrame)
-page.Size = UDim2.new(1, -20, 1, -60)
-page.Position = UDim2.new(0, 10, 0, 50)
-page.BackgroundColor3 = Color3.fromRGB(30, 10, 50)
-addUICorner(page, 18)
+local function createTabButton(name, idx)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0, 140, 0, 35)
+    btn.Position = UDim2.new(0, 10 + (idx - 1) * 150, 0, 45)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 20
+    btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    btn.BackgroundColor3 = Color3.fromRGB(65, 15, 85)
+    btn.AutoButtonColor = false
+    addUICorner(btn, 14)
 
--- إدخال اسم اللاعب المستهدف
-local targetInput = Instance.new("TextBox", page)
-targetInput.Size = UDim2.new(0, 380, 0, 45)
-targetInput.Position = UDim2.new(0, 20, 0, 20)
-targetInput.PlaceholderText = "أدخل اسم اللاعب المستهدف (جزء من الاسم)"
-targetInput.Font = Enum.Font.Gotham
-targetInput.TextSize = 22
-targetInput.TextColor3 = Color3.fromRGB(230, 230, 230)
-targetInput.BackgroundColor3 = Color3.fromRGB(55, 20, 75)
-addUICorner(targetInput, 16)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(110, 25, 140)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        if Pages[idx].Visible then
+            TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(90, 20, 120)}):Play()
+        else
+            TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(65, 15, 85)}):Play()
+        end
+    end)
 
--- زر تفعيل/تعطيل Bang
-local toggleBangBtn = Instance.new("TextButton", page)
-toggleBangBtn.Size = UDim2.new(0, 140, 0, 45)
-toggleBangBtn.Position = UDim2.new(0, 420, 0, 20)
-toggleBangBtn.Text = "تفعيل Bang"
-toggleBangBtn.Font = Enum.Font.GothamBold
-toggleBangBtn.TextSize = 22
-toggleBangBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
-toggleBangBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 180)
-toggleBangBtn.AutoButtonColor = false
-addUICorner(toggleBangBtn, 18)
+    btn.MouseButton1Click:Connect(function()
+        for i, p in pairs(Pages) do
+            p.Visible = false
+            TweenService:Create(TabButtons[i], TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(65, 15, 85)}):Play()
+        end
+        Pages[idx].Visible = true
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(90, 20, 120)}):Play()
+    end)
 
--- شريط سرعة الحركة
-local speedLabel = Instance.new("TextLabel", page)
-speedLabel.Size = UDim2.new(0, 280, 0, 30)
-speedLabel.Position = UDim2.new(0, 20, 0, 80)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Font = Enum.Font.Gotham
-speedLabel.TextSize = 20
-speedLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
-speedLabel.Text = "سرعة الحركة: 1.00"
+    return btn
+end
 
-local speedSlider = Instance.new("Frame", page)
-speedSlider.Size = UDim2.new(0, 280, 0, 30)
-speedSlider.Position = UDim2.new(0, 20, 0, 115)
-speedSlider.BackgroundColor3 = Color3.fromRGB(85, 0, 150)
-addUICorner(speedSlider, 14)
+for i, tabName in ipairs(Tabs) do
+    TabButtons[i] = createTabButton(tabName, i)
+    local page = Instance.new("Frame", MainFrame)
+    page.Size = UDim2.new(1, -20, 1, -90)
+    page.Position = UDim2.new(0, 10, 0, 85)
+    page.BackgroundColor3 = Color3.fromRGB(30, 10, 50)
+    page.Visible = (i == 1)
+    addUICorner(page, 18)
+    Pages[i] = page
+end
 
-local fillBar = Instance.new("Frame", speedSlider)
-fillBar.Size = UDim2.new(0.1, 0, 1, 0)
-fillBar.BackgroundColor3 = Color3.fromRGB(180, 0, 250)
-addUICorner(fillBar, 14)
+-------------------------------
+-- Tab 1: الرئيسية (Main Tab)
+-------------------------------
+do
+    local page = Pages[1]
+    page:ClearAllChildren()
 
--- التحكم في السحب لشريط السرعة
-local dragging = false
-local sliderWidth = 280
-speedSlider.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-    end
-end)
-speedSlider.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-speedSlider.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local posX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, sliderWidth)
-        local ratio = posX / sliderWidth
-        fillBar.Size = UDim2.new(ratio, 0, 1, 0)
-        local speedVal = math.floor(ratio * 200) / 100
-        if speedVal < 0.1 then speedVal = 0.1 end
-        speedLabel.Text = ("سرعة الحركة: %.2f"):format(speedVal)
-        bangSpeed = speedVal
-    end
-end)
+    local options = {
+        {Name = "Speed Hack", State = false},
+        {Name = "ESP", State = false},
+        {Name = "Jump Boost", State = false},
+        {Name = "Fly Mode", State = false},
+    }
 
--- متغيرات Bang و Emote
-local bangActive = false
-local bangSpeed = 1.0
-local targetPlayer = nil
-local bangConnection = nil
+    local labels = {}
+    local toggles = {}
 
--- معرّف ايموت Dolphin Dance الرسمي
-local emoteAssetId = 5938365243
-
--- دالة للعثور على لاعب بالاسم الجزئي
-local function findTargetPlayer(namePart)
-    if not namePart or namePart == "" then return nil end
-    namePart = namePart:lower()
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr.Name:lower():find(namePart) then
-            return plr
+    local humanoid = nil
+    local function updateHumanoid()
+        if LocalPlayer.Character then
+            humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        else
+            humanoid = nil
         end
     end
-    return nil
-end
+    LocalPlayer.CharacterAdded:Connect(updateHumanoid)
+    updateHumanoid()
 
-local function stopCurrentEmote()
-    if currentAnimTrack then
-        currentAnimTrack:Stop()
-        currentAnimTrack:Destroy()
-        currentAnimTrack = nil
+    local flyEnabled = false
+    local flySpeed = 50
+    local bodyGyro, bodyVelocity
+
+    for i, option in ipairs(options) do
+        local label = Instance.new("TextLabel", page)
+        label.Size = UDim2.new(0, 200, 0, 35)
+        label.Position = UDim2.new(0, 20, 0, 20 + (i - 1) * 50)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(230, 230, 230)
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 22
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Text = option.Name
+        labels[i] = label
+
+        local toggle = Instance.new("TextButton", page)
+        toggle.Size = UDim2.new(0, 80, 0, 35)
+        toggle.Position = UDim2.new(0, 230, 0, 20 + (i - 1) * 50)
+        toggle.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+        toggle.Font = Enum.Font.GothamBold
+        toggle.TextSize = 20
+        toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggle.Text = "OFF"
+        addUICorner(toggle, 14)
+
+        toggle.MouseButton1Click:Connect(function()
+            options[i].State = not options[i].State
+            toggle.Text = options[i].State and "ON" or "OFF"
+            toggle.BackgroundColor3 = options[i].State and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(100, 0, 150)
+
+            if option.Name == "Speed Hack" then
+                if humanoid then
+                    humanoid.WalkSpeed = options[i].State and 50 or 16
+                    createNotification("Speed Hack " .. (options[i].State and "مفعل" or "معطل"))
+                end
+            elseif option.Name == "Jump Boost" then
+                if humanoid then
+                    humanoid.JumpPower = options[i].State and 100 or 50
+                    createNotification("Jump Boost " .. (options[i].State and "مفعل" or "معطل"))
+                end
+            elseif option.Name == "Fly Mode" then
+                flyEnabled = options[i].State
+                if flyEnabled then
+                    createNotification("Fly Mode مفعل - استخدم WASD + Space + Ctrl للطيران")
+                else
+                    createNotification("Fly Mode معطل")
+                    if bodyGyro then
+                        bodyGyro:Destroy()
+                        bodyGyro = nil
+                    end
+                    if bodyVelocity then
+                        bodyVelocity:Destroy()
+                        bodyVelocity = nil
+                    end
+                end
+            elseif option.Name == "ESP" then
+                if options[i].State then
+                    createNotification("ESP مفعل")
+                    for _, plr in pairs(Players:GetPlayers()) do
+                        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                            if not plr.Character:FindFirstChild("BoxESP") then
+                                local box = Instance.new("BoxHandleAdornment")
+                                box.Name = "BoxESP"
+                                box.Adornee = plr.Character.HumanoidRootPart
+                                box.AlwaysOnTop = true
+                                box.ZIndex = 10
+                                box.Size = Vector3.new(2, 5, 1)
+                                box.Transparency = 0.6
+                                box.Color3 = Color3.fromRGB(255, 0, 0)
+                                box.Parent = plr.Character.HumanoidRootPart
+                            end
+                        end
+                    end
+                else
+                    createNotification("ESP معطل")
+                    for _, plr in pairs(Players:GetPlayers()) do
+                        if plr.Character and plr.Character:FindFirstChild("BoxESP") then
+                            plr.Character.BoxESP:Destroy()
+                        end
+                    end
+                end
+            end
+        end)
+        toggles[i] = toggle
     end
-    playingEmote = false
+
+    -- Fly Mode Movement Handler
+    RS:BindToRenderStep("FlyControl", Enum.RenderPriority.Character.Value + 1, function()
+        if not flyEnabled or not LocalPlayer.Character or not humanoid then return end
+
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        local cam = workspace.CurrentCamera
+        local moveDir = Vector3.new(0, 0, 0)
+        local speed = flySpeed
+
+        if UIS:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + cam.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - cam.CFrame.LookVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - cam.CFrame.RightVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + cam.CFrame.RightVector
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) or UIS:IsKeyDown(Enum.KeyCode.RightControl) then
+            moveDir = moveDir - Vector3.new(0, 1, 0)
+        end
+
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit * speed
+        else
+            moveDir = Vector3.new(0,0,0)
+        end
+
+        if not bodyVelocity then
+            bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bodyVelocity.P = 1e4
+            bodyVelocity.Parent = root
+        end
+
+        if not bodyGyro then
+            bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+            bodyGyro.P = 1e4
+            bodyGyro.Parent = root
+        end
+
+        bodyVelocity.Velocity = moveDir
+        bodyGyro.CFrame = cam.CFrame
+    end)
 end
 
-local currentAnimTrack = nil
-local playingEmote = false
+--------------------------------
+-- Tab 2: Bang System (خلف اللاعب الهدف)
+--------------------------------
+do
+    local page = Pages[2]
+    page:ClearAllChildren()
 
--- وظيفة تفعيل/تعطيل Bang مع تشغيل الإيموت خلف اللاعب المستهدف
-toggleBangBtn.MouseButton1Click:Connect(function()
-    if not bangActive then
-        targetPlayer = findTargetPlayer(targetInput.Text)
-        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            createNotification("لم يتم العثور على اللاعب المستهدف")
+    local infoLabel = Instance.new("TextLabel", page)
+    infoLabel.Size = UDim2.new(1, -40, 0, 50)
+    infoLabel.Position = UDim2.new(0, 20, 0, 10)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.GothamBold
+    infoLabel.TextSize = 20
+    infoLabel.TextColor3 = Color3.fromRGB(255, 200, 200)
+    infoLabel.Text = "اختر هدف من القائمة أدناه ثم فعّل Bang system"
+
+    local targetDropdown = Instance.new("TextButton", page)
+    targetDropdown.Size = UDim2.new(0, 200, 0, 35)
+    targetDropdown.Position = UDim2.new(0, 20, 0, 70)
+    targetDropdown.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    targetDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+    targetDropdown.Font = Enum.Font.GothamBold
+    targetDropdown.TextSize = 18
+    targetDropdown.Text = "اختيار الهدف"
+    addUICorner(targetDropdown, 14)
+
+    local dropdownOpen = false
+    local dropdownList = Instance.new("ScrollingFrame", page)
+    dropdownList.Size = UDim2.new(0, 200, 0, 150)
+    dropdownList.Position = UDim2.new(0, 20, 0, 110)
+    dropdownList.BackgroundColor3 = Color3.fromRGB(50, 10, 80)
+    dropdownList.BorderSizePixel = 0
+    dropdownList.Visible = false
+    dropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    addUICorner(dropdownList, 14)
+
+    local targetSelected = nil
+    local bangActive = false
+
+    local function updateDropdown()
+        for _, child in pairs(dropdownList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local yPos = 0
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                local btn = Instance.new("TextButton", dropdownList)
+                btn.Size = UDim2.new(1, 0, 0, 30)
+                btn.Position = UDim2.new(0, 0, 0, yPos)
+                btn.BackgroundColor3 = Color3.fromRGB(85, 25, 120)
+                btn.Text = plr.Name
+                btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                btn.Font = Enum.Font.GothamBold
+                btn.TextSize = 16
+                addUICorner(btn, 10)
+
+                btn.MouseButton1Click:Connect(function()
+                    targetSelected = plr
+                    targetDropdown.Text = "الهدف: " .. plr.Name
+                    dropdownList.Visible = false
+                    dropdownOpen = false
+                end)
+
+                yPos = yPos + 35
+            end
+        end
+        dropdownList.CanvasSize = UDim2.new(0, 0, 0, yPos)
+    end
+
+    targetDropdown.MouseButton1Click:Connect(function()
+        dropdownOpen = not dropdownOpen
+        dropdownList.Visible = dropdownOpen
+        if dropdownOpen then
+            updateDropdown()
+        end
+    end)
+
+    -- Toggle Button for Bang System
+    local bangToggle = Instance.new("TextButton", page)
+    bangToggle.Size = UDim2.new(0, 120, 0, 35)
+    bangToggle.Position = UDim2.new(0, 240, 0, 70)
+    bangToggle.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+    bangToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    bangToggle.Font = Enum.Font.GothamBold
+    bangToggle.TextSize = 20
+    bangToggle.Text = "OFF"
+    addUICorner(bangToggle, 14)
+
+    bangToggle.MouseButton1Click:Connect(function()
+        if not targetSelected then
+            createNotification("يجب اختيار هدف أولاً")
             return
         end
 
-        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            createNotification("شخصيتك غير جاهزة")
+        bangActive = not bangActive
+        bangToggle.Text = bangActive and "ON" or "OFF"
+        bangToggle.BackgroundColor3 = bangActive and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(100, 0, 150)
+
+        createNotification("Bang system " .. (bangActive and "مفعل" or "معطل"))
+    end)
+
+    -- Bang system logic: Position player behind target with smooth update
+    RS:BindToRenderStep("BangSystem", Enum.RenderPriority.Character.Value + 1, function()
+        if not bangActive or not targetSelected or not targetSelected.Character then return end
+        local targetRoot = targetSelected.Character:FindFirstChild("HumanoidRootPart")
+        local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetRoot or not localRoot then return end
+
+        -- Calculate position behind the target (~3 studs behind target facing direction)
+        local targetCFrame = targetRoot.CFrame
+        local behindPos = targetCFrame.Position - targetCFrame.LookVector * 3 + Vector3.new(0, 1, 0)
+
+        -- Smoothly move local player to behind position
+        localRoot.CFrame = CFrame.new(behindPos, targetCFrame.Position)
+
+        -- Optional: Keep humanoid root part velocity zero to avoid physics glitches
+        if LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character.Humanoid.PlatformStand = true
+        end
+    end)
+end
+
+-------------------------------
+-- Tab 3: Emote Control
+-------------------------------
+do
+    local page = Pages[3]
+    page:ClearAllChildren()
+
+    local emoteLabel = Instance.new("TextLabel", page)
+    emoteLabel.Size = UDim2.new(1, -40, 0, 40)
+    emoteLabel.Position = UDim2.new(0, 20, 0, 10)
+    emoteLabel.BackgroundTransparency = 1
+    emoteLabel.Font = Enum.Font.GothamBold
+    emoteLabel.TextSize = 20
+    emoteLabel.TextColor3 = Color3.fromRGB(255, 200, 200)
+    emoteLabel.Text = "اختر حركة Emote ثم اضغط تشغيل"
+
+    -- Emote selector dropdown
+    local emotes = {
+        ["Dolphin Dance"] = 5938365243, -- example asset ID
+        ["Wave"] = 241667845, -- sample ID
+        ["Dance1"] = 507766666, -- sample ID
+    }
+
+    local emoteDropdown = Instance.new("TextButton", page)
+    emoteDropdown.Size = UDim2.new(0, 200, 0, 35)
+    emoteDropdown.Position = UDim2.new(0, 20, 0, 70)
+    emoteDropdown.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    emoteDropdown.TextColor3 = Color3.fromRGB(255, 255, 255)
+    emoteDropdown.Font = Enum.Font.GothamBold
+    emoteDropdown.TextSize = 18
+    emoteDropdown.Text = "اختيار Emote"
+    addUICorner(emoteDropdown, 14)
+
+    local emoteOpen = false
+    local emoteList = Instance.new("ScrollingFrame", page)
+    emoteList.Size = UDim2.new(0, 200, 0, 150)
+    emoteList.Position = UDim2.new(0, 20, 0, 110)
+    emoteList.BackgroundColor3 = Color3.fromRGB(50, 10, 80)
+    emoteList.BorderSizePixel = 0
+    emoteList.Visible = false
+    emoteList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    addUICorner(emoteList, 14)
+
+    local selectedEmote = nil
+
+    local function updateEmoteList()
+        for _, child in pairs(emoteList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+
+        local yPos = 0
+        for emoteName, assetId in pairs(emotes) do
+            local btn = Instance.new("TextButton", emoteList)
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.Position = UDim2.new(0, 0, 0, yPos)
+            btn.BackgroundColor3 = Color3.fromRGB(85, 25, 120)
+            btn.Text = emoteName
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 16
+            addUICorner(btn, 10)
+
+            btn.MouseButton1Click:Connect(function()
+                selectedEmote = emoteName
+                emoteDropdown.Text = "Emote: " .. emoteName
+                emoteList.Visible = false
+                emoteOpen = false
+            end)
+
+            yPos = yPos + 35
+        end
+        emoteList.CanvasSize = UDim2.new(0, 0, 0, yPos)
+    end
+
+    emoteDropdown.MouseButton1Click:Connect(function()
+        emoteOpen = not emoteOpen
+        emoteList.Visible = emoteOpen
+        if emoteOpen then
+            updateEmoteList()
+        end
+    end)
+
+    -- Play Button
+    local playBtn = Instance.new("TextButton", page)
+    playBtn.Size = UDim2.new(0, 100, 0, 35)
+    playBtn.Position = UDim2.new(0, 240, 0, 70)
+    playBtn.BackgroundColor3 = Color3.fromRGB(100, 0, 150)
+    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playBtn.Font = Enum.Font.GothamBold
+    playBtn.TextSize = 20
+    playBtn.Text = "تشغيل"
+    addUICorner(playBtn, 14)
+
+    -- Speed control slider label
+    local speedLabel = Instance.new("TextLabel", page)
+    speedLabel.Size = UDim2.new(0, 150, 0, 25)
+    speedLabel.Position = UDim2.new(0, 20, 0, 270)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 16
+    speedLabel.Text = "سرعة الحركة: 1.0x"
+
+    -- Speed slider (simple)
+    local speedSlider = Instance.new("TextButton", page)
+    speedSlider.Size = UDim2.new(0, 150, 0, 20)
+    speedSlider.Position = UDim2.new(0, 20, 0, 300)
+    speedSlider.BackgroundColor3 = Color3.fromRGB(70, 20, 100)
+    speedSlider.Text = ""
+    addUICorner(speedSlider, 12)
+
+    local speedFill = Instance.new("Frame", speedSlider)
+    speedFill.Size = UDim2.new(0.5, 0, 1, 0) -- default 0.5 = 1x speed
+    speedFill.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
+    addUICorner(speedFill, 12)
+
+    local dragging = false
+    speedSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    speedSlider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    speedSlider.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relativeX = math.clamp(input.Position.X - speedSlider.AbsolutePosition.X, 0, speedSlider.AbsoluteSize.X)
+            local percent = relativeX / speedSlider.AbsoluteSize.X
+            speedFill.Size = UDim2.new(percent, 0, 1, 0)
+            local speedValue = (percent * 2) -- speed range 0 to 2
+            speedLabel.Text = string.format("سرعة الحركة: %.2fx", speedValue)
+        end
+    end)
+
+    -- Animation playing logic
+    local currentAnim = nil
+    local animator = nil
+
+    playBtn.MouseButton1Click:Connect(function()
+        if not selectedEmote then
+            createNotification("يرجى اختيار Emote أولاً")
+            return
+        end
+        if not LocalPlayer.Character then
+            createNotification("لا يوجد شخصية حالياً")
+            return
+        end
+
+        if animator == nil then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+            end
+        end
+        if animator == nil then
+            createNotification("تعذر إيجاد Animator")
+            return
+        end
+
+        if currentAnim then
+            currentAnim:Stop()
+            currentAnim:Destroy()
+            currentAnim = nil
+        end
+
+        local assetId = emotes[selectedEmote]
+        if not assetId then
+            createNotification("تعذر إيجاد الAnimation")
+            return
+        end
+
+        local animation = Instance.new("Animation")
+        animation.AnimationId = "rbxassetid://" .. tostring(assetId)
+
+        currentAnim = animator:LoadAnimation(animation)
+        currentAnim:Play()
+
+        -- Adjust speed based on slider
+        local speedPercent = speedFill.Size.X.Scale
+        currentAnim.Speed = math.clamp(speedPercent * 2, 0.1, 2)
+
+        createNotification("تم تشغيل Emote: " .. selectedEmote)
+    end)
+end
+
+-------------------------------
+-- Tab 4: معلومات اللاعب (Player Info)
+-------------------------------
+do
+    local page = Pages[4]
+    page:ClearAllChildren()
+
+    local infoTitle = Instance.new("TextLabel", page)
+    infoTitle.Size = UDim2.new(1, -40, 0, 50)
+    infoTitle.Position = UDim2.new(0, 20, 0, 10)
+    infoTitle.BackgroundTransparency = 1
+    infoTitle.Font = Enum.Font.GothamBold
+    infoTitle.TextSize = 24
+    infoTitle.TextColor3 = Color3.fromRGB(255, 200, 200)
+    infoTitle.Text = "معلومات اللاعب (Player Info)"
+
+    local infoLabel = Instance.new("TextLabel", page)
+    infoLabel.Size = UDim2.new(1, -40, 0, 150)
+    infoLabel.Position = UDim2.new(0, 20, 0, 70)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextSize = 18
+    infoLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    infoLabel.Text = "جاري تحميل المعلومات..."
+
+    local function updateInfo()
+        if not LocalPlayer.Character then
+            infoLabel.Text = "لا يوجد شخصية حالياً"
             return
         end
 
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        -- تشغيل الإيموت Dolphin Dance على الشخصية
-        local animation = Instance.new("Animation")
-        animation.AnimationId = "rbxassetid://"..emoteAssetId
-        currentAnimTrack = humanoid:LoadAnimation(animation)
-        currentAnimTrack.Priority = Enum.AnimationPriority.Action
-        currentAnimTrack:Play()
-        playingEmote = true
-
-        createNotification("تم تفعيل Bang والإيموت على "..targetPlayer.Name)
-        bangActive = true
-        toggleBangBtn.Text = "تعطيل Bang"
-        toggleBangBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
-
-        bangConnection = RS.Heartbeat:Connect(function()
-            if not bangActive or not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                bangConnection:Disconnect()
-                bangActive = false
-                toggleBangBtn.Text = "تفعيل Bang"
-                toggleBangBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 180)
-                stopCurrentEmote()
-                return
-            end
-
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local targetHRP = targetPlayer.Character.HumanoidRootPart
-            if hrp then
-                -- وضع اللاعب خلف الهدف على مسافة قصيرة وثابتة (1.5 studs) مع ارتفاع بسيط (2 studs)
-                local behindOffset = targetHRP.CFrame.LookVector * -1.5
-                local newPos = targetHRP.Position + behindOffset + Vector3.new(0, 2, 0)
-
-                -- تحريك الشخصية بسلاسة نحو هذا الموقع
-                hrp.CFrame = CFrame.new(newPos, targetHRP.Position)
-
-                -- إيقاف تحركات المشي والقفز للمحافظة على الوضع
-                humanoid.WalkSpeed = 0
-                humanoid.JumpPower = 0
-            end
-        end)
-    else
-        if bangConnection then
-            bangConnection:Disconnect()
-            bangConnection = nil
-        end
-        bangActive = false
-        toggleBangBtn.Text = "تفعيل Bang"
-        toggleBangBtn.BackgroundColor3 = Color3.fromRGB(130, 0, 180)
-
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            humanoid.WalkSpeed = 16
-            humanoid.JumpPower = 50
+        if not humanoid or not root then
+            infoLabel.Text = "تعذر إيجاد المكونات الأساسية"
+            return
         end
 
-        stopCurrentEmote()
-        createNotification("تم تعطيل Bang والإيموت")
+        local health = humanoid.Health
+        local maxHealth = humanoid.MaxHealth
+        local position = root.Position
+        local walkSpeed = humanoid.WalkSpeed
+        local jumpPower = humanoid.JumpPower
+
+        infoLabel.Text = string.format(
+            [[
+اسم اللاعب: %s
+الصحة: %.1f / %.1f
+الموقع: X=%.1f, Y=%.1f, Z=%.1f
+سرعة المشي: %.1f
+قوة القفز: %.1f
+            ]],
+            LocalPlayer.Name,
+            health,
+            maxHealth,
+            position.X, position.Y, position.Z,
+            walkSpeed,
+            jumpPower
+        )
     end
-end)
+
+    -- تحديث كل نصف ثانية
+    RS:BindToRenderStep("UpdatePlayerInfo", Enum.RenderPriority.Last.Value, function()
+        updateInfo()
+    end)
+end
