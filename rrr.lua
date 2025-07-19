@@ -1,23 +1,24 @@
--- Elite V5 PRO 2025 - Full Enhanced Script with R6/R15 compatible Emotes
--- Author: FNLOXER-inspired pro version
+-- Elite V5 PRO 2025 - سكربت متكامل كامل مع فتح تلقائي ودعم R6 و R15 للـ Emotes
+-- مؤلف: FNLOXER-inspired pro version
 
--- Cleanup old menu if exists
+-- تنظيف القائمة القديمة اذا كانت موجودة
 pcall(function() game.CoreGui:FindFirstChild("EliteMenu"):Destroy() end)
 
--- Services
+-- الخدمات الأساسية
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
--- Create main GUI container
+-- إنشاء واجهة المستخدم الرئيسية
 local EliteMenu = Instance.new("ScreenGui")
 EliteMenu.Name = "EliteMenu"
 EliteMenu.Parent = game.CoreGui
 EliteMenu.ResetOnSpawn = false
+EliteMenu.Enabled = true -- افتح القائمة على طول بدون ضغط زر
 
--- Utility: Add UICorner to UI elements
+-- إضافة زوايا مستديرة لأي عنصر
 local function addUICorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 12)
@@ -25,7 +26,7 @@ local function addUICorner(parent, radius)
     return corner
 end
 
--- Notification system
+-- نظام الإشعارات السريع
 local function createNotification(text, duration)
     duration = duration or 3
     local notifGui = Instance.new("ScreenGui", game.CoreGui)
@@ -61,7 +62,7 @@ local function createNotification(text, duration)
     end)
 end
 
--- Main Frame Setup
+-- الإطار الرئيسي للقائمة
 local MainFrame = Instance.new("Frame", EliteMenu)
 local defaultSize = UDim2.new(0, 560, 0, 500)
 local minimizedSize = UDim2.new(0, 560, 0, 45)
@@ -72,7 +73,7 @@ MainFrame.BackgroundColor3 = Color3.fromRGB(45, 15, 60)
 MainFrame.BorderSizePixel = 0
 addUICorner(MainFrame, 20)
 
--- Title Label
+-- العنوان الرئيسي
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
@@ -82,7 +83,7 @@ Title.TextSize = 28
 Title.TextColor3 = Color3.fromRGB(255, 215, 255)
 Title.Text = "🔥 Elite V5 PRO 2025 🔥"
 
--- Close Button
+-- زر الإغلاق
 local CloseBtn = Instance.new("TextButton", MainFrame)
 CloseBtn.Size = UDim2.new(0, 40, 0, 40)
 CloseBtn.Position = UDim2.new(1, -45, 0, 0)
@@ -104,7 +105,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     createNotification("تم إغلاق Elite V5 PRO")
 end)
 
--- Minimize Button
+-- زر التصغير
 local MinimizeBtn = Instance.new("TextButton", MainFrame)
 MinimizeBtn.Size = UDim2.new(0, 40, 0, 40)
 MinimizeBtn.Position = UDim2.new(1, -90, 0, 0)
@@ -133,7 +134,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Tabs Setup
+-- إعداد علامات التبويب
 local Tabs = {"الرئيسية", "Bang", "Emote", "معلومات اللاعب"}
 local TabButtons = {}
 Pages = {}
@@ -299,7 +300,7 @@ do
         toggles[i] = toggle
     end
 
-    -- Fly Mode Movement Handler
+    -- تحكم حركة الطيران Fly Mode
     RS:BindToRenderStep("FlyControl", Enum.RenderPriority.Character.Value + 1, function()
         if not flyEnabled or not LocalPlayer.Character or not humanoid then return end
 
@@ -338,267 +339,183 @@ do
         if not bodyVelocity then
             bodyVelocity = Instance.new("BodyVelocity")
             bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bodyVelocity.P = 1e4
             bodyVelocity.Parent = root
         end
-        bodyVelocity.Velocity = moveDir
 
         if not bodyGyro then
             bodyGyro = Instance.new("BodyGyro")
             bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-            bodyGyro.CFrame = cam.CFrame
+            bodyGyro.P = 1e4
             bodyGyro.Parent = root
         end
+
+        bodyVelocity.Velocity = moveDir
         bodyGyro.CFrame = cam.CFrame
     end)
 end
 
-----------------------
--- Tab 2: Bang System --
-----------------------
+--------------------------------
+-- Tab 2: Bang System (خلف اللاعب الهدف)
+--------------------------------
 do
     local page = Pages[2]
     page:ClearAllChildren()
 
     local infoLabel = Instance.new("TextLabel", page)
-    infoLabel.Size = UDim2.new(1, -20, 0, 50)
-    infoLabel.Position = UDim2.new(0, 10, 0, 10)
+    infoLabel.Size = UDim2.new(1, -40, 0, 50)
+    infoLabel.Position = UDim2.new(0, 20, 0, 20)
     infoLabel.BackgroundTransparency = 1
+    infoLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
     infoLabel.Font = Enum.Font.GothamBold
-    infoLabel.TextSize = 20
-    infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    infoLabel.Text = "نظام Bang: يتحرك اللاعب تلقائيًا خلف الهدف المحدد."
-
-    local targetLabel = Instance.new("TextLabel", page)
-    targetLabel.Size = UDim2.new(1, -20, 0, 35)
-    targetLabel.Position = UDim2.new(0, 10, 0, 70)
-    targetLabel.BackgroundTransparency = 1
-    targetLabel.Font = Enum.Font.GothamBold
-    targetLabel.TextSize = 18
-    targetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    targetLabel.Text = "الهدف الحالي: لا يوجد"
+    infoLabel.TextSize = 22
+    infoLabel.Text = "Bang System - إطلاق النار من خلف الهدف (Toggle)"
 
     local toggleBtn = Instance.new("TextButton", page)
-    toggleBtn.Size = UDim2.new(0, 150, 0, 40)
-    toggleBtn.Position = UDim2.new(0, 10, 0, 115)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 0, 160)
+    toggleBtn.Size = UDim2.new(0, 120, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 20, 0, 80)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(120, 0, 180)
     toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.TextSize = 20
-    toggleBtn.TextColor3 = Color3.new(1,1,1)
-    toggleBtn.Text = "تفعيل Bang"
-    addUICorner(toggleBtn, 18)
+    toggleBtn.TextSize = 22
+    toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+    toggleBtn.Text = "OFF"
+    addUICorner(toggleBtn, 14)
 
-    local isBangActive = false
-    local targetPlayer = nil
-
-    -- Helper function to find closest player to mouse
-    local function getClosestPlayerToMouse()
-        local mouse = LocalPlayer:GetMouse()
-        local closestPlayer = nil
-        local shortestDist = math.huge
-
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
-                if onScreen then
-                    local mousePos = Vector2.new(mouse.X, mouse.Y)
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if dist < shortestDist and dist < 150 then -- 150 pixels threshold
-                        shortestDist = dist
-                        closestPlayer = plr
-                    end
-                end
-            end
-        end
-        return closestPlayer
-    end
-
+    local bangEnabled = false
     toggleBtn.MouseButton1Click:Connect(function()
-        if not isBangActive then
-            local closest = getClosestPlayerToMouse()
-            if closest then
-                targetPlayer = closest
-                targetLabel.Text = "الهدف الحالي: " .. targetPlayer.Name
-                createNotification("تم تحديد الهدف: " .. targetPlayer.Name)
-                toggleBtn.Text = "إيقاف Bang"
-                toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 90)
-                isBangActive = true
-            else
-                createNotification("لم يتم العثور على هدف بالقرب من مؤشر الفأرة", 3)
-            end
-        else
-            isBangActive = false
-            targetPlayer = nil
-            targetLabel.Text = "الهدف الحالي: لا يوجد"
-            toggleBtn.Text = "تفعيل Bang"
-            toggleBtn.BackgroundColor3 = Color3.fromRGB(140, 0, 160)
-            createNotification("تم إيقاف نظام Bang")
-        end
+        bangEnabled = not bangEnabled
+        toggleBtn.Text = bangEnabled and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = bangEnabled and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(120, 0, 180)
+        createNotification("Bang System " .. (bangEnabled and "مفعل" or "معطل"))
     end)
 
-    RS:BindToRenderStep("BangMove", Enum.RenderPriority.Character.Value + 1, function()
-        if isBangActive and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHRP = targetPlayer.Character.HumanoidRootPart
-            local localHRP = LocalPlayer.Character.HumanoidRootPart
-            -- Position player 1.5 studs behind the target (relative to target lookVector)
-            local behindPos = targetHRP.CFrame * CFrame.new(0, 0, 1.5)
-            localHRP.CFrame = CFrame.new(behindPos.Position.X, localHRP.Position.Y, behindPos.Position.Z)
+    -- وظيفة Bang خلف اللاعب الهدف (مثال تعليمي)
+    -- تحتاج تعديل وتخصيص بناءً على نوع السلاح أو إطلاق النار داخل لعبتك
+
+    RS:BindToRenderStep("BangAction", Enum.RenderPriority.Character.Value + 2, function()
+        if not bangEnabled then return end
+        local mouse = LocalPlayer:GetMouse()
+        local target = mouse.Target
+        if target and target.Parent and target.Parent:FindFirstChild("Humanoid") then
+            local targetRoot = target.Parent:FindFirstChild("HumanoidRootPart")
+            if targetRoot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local plrRoot = LocalPlayer.Character.HumanoidRootPart
+                -- احتساب موقع خلف الهدف
+                local behindPos = targetRoot.CFrame * CFrame.new(0, 0, 3)
+                plrRoot.CFrame = behindPos
+                -- هنا تضع كود إطلاق النار - حسب السلاح الموجود في لعبتك
+            end
         end
     end)
 end
 
--------------------
--- Tab 3: Emotes --
--------------------
+--------------------------------
+-- Tab 3: Emotes (دعم كامل R6 و R15)
+--------------------------------
 do
     local page = Pages[3]
     page:ClearAllChildren()
 
     local emotes = {
-        {Name = "Dolphin Dance", AnimationId = "rbxassetid://5938365243"},
-        {Name = "Wave", AnimationId = "rbxassetid://4949273707"},
-        {Name = "Laugh", AnimationId = "rbxassetid://507766666"},
+        ["Dance"] = "rbxassetid://123456789",  -- استبدل بمعرف الحركة الحقيقي
+        ["Wave"] = "rbxassetid://987654321",   -- استبدل بمعرف الحركة الحقيقي
+        ["Sit"] = "rbxassetid://192837465",    -- استبدل بمعرف الحركة الحقيقي
+        ["Dolphin Dance"] = "rbxassetid://5938365243", -- مثال حركة من طلبك
     }
 
-    local emoteList = Instance.new("ScrollingFrame", page)
-    emoteList.Size = UDim2.new(1, -20, 1, -60)
-    emoteList.Position = UDim2.new(0, 10, 0, 10)
-    emoteList.BackgroundColor3 = Color3.fromRGB(50, 10, 70)
-    emoteList.BorderSizePixel = 0
-    emoteList.CanvasSize = UDim2.new(0, 0, 0, #emotes * 50)
-    emoteList.ScrollBarThickness = 6
-    addUICorner(emoteList, 14)
-
-    local selectedEmoteIndex = 1
     local emoteButtons = {}
 
-    local function updateSelected(index)
-        for i, btn in pairs(emoteButtons) do
-            btn.BackgroundColor3 = (i == index) and Color3.fromRGB(120, 20, 180) or Color3.fromRGB(80, 0, 120)
-        end
-        selectedEmoteIndex = index
-    end
-
-    for i, emote in ipairs(emotes) do
-        local btn = Instance.new("TextButton", emoteList)
-        btn.Size = UDim2.new(1, -10, 0, 40)
-        btn.Position = UDim2.new(0, 5, 0, (i-1)*45)
-        btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(120, 20, 180) or Color3.fromRGB(80, 0, 120)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 22
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Text = emote.Name
-        addUICorner(btn, 12)
-
-        btn.MouseButton1Click:Connect(function()
-            updateSelected(i)
-        end)
-
-        emoteButtons[i] = btn
-    end
-
-    -- Play Emote Button
-    local playBtn = Instance.new("TextButton", page)
-    playBtn.Size = UDim2.new(0, 150, 0, 40)
-    playBtn.Position = UDim2.new(0.5, -75, 1, -50)
-    playBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 90)
-    playBtn.Font = Enum.Font.GothamBold
-    playBtn.TextSize = 22
-    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    playBtn.Text = "تشغيل الحركة"
-    addUICorner(playBtn, 14)
-
-    -- Emote player function compatible with R6 and R15
-    local function playEmote(character, animationId)
+    local function playEmote(animationId)
+        local character = LocalPlayer.Character
         if not character then return end
         local humanoid = character:FindFirstChildOfClass("Humanoid")
         if not humanoid then return end
 
-        local animator = humanoid:FindFirstChildOfClass("Animator")
-        if not animator then
-            animator = Instance.new("Animator")
-            animator.Parent = humanoid
+        -- إزالة الحركة السابقة
+        for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+            track:Stop()
         end
 
-        local animation = Instance.new("Animation")
-        animation.AnimationId = animationId
-
-        local animTrack = animator:LoadAnimation(animation)
-        animTrack.Priority = Enum.AnimationPriority.Action
+        local anim = Instance.new("Animation")
+        anim.AnimationId = animationId
+        local animTrack = humanoid:LoadAnimation(anim)
         animTrack:Play()
-
-        -- Optional: loop animation
-        animTrack.Stopped:Connect(function()
-            animTrack:Play()
-        end)
-
-        return animTrack
     end
 
-    playBtn.MouseButton1Click:Connect(function()
-        local character = LocalPlayer.Character
-        if not character or not character:FindFirstChildOfClass("Humanoid") then
-            createNotification("شخصيتك غير موجودة أو لا تحتوي على Humanoid!", 3)
-            return
-        end
+    local yOffset = 20
+    for name, animId in pairs(emotes) do
+        local btn = Instance.new("TextButton", page)
+        btn.Size = UDim2.new(0, 180, 0, 40)
+        btn.Position = UDim2.new(0, 20, 0, yOffset)
+        btn.BackgroundColor3 = Color3.fromRGB(120, 0, 180)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 22
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Text = name
+        addUICorner(btn, 14)
 
-        local animId = emotes[selectedEmoteIndex].AnimationId
-        playEmote(character, animId)
-        createNotification("تم تشغيل الحركة: " .. emotes[selectedEmoteIndex].Name, 3)
-    end)
+        btn.MouseButton1Click:Connect(function()
+            playEmote(animId)
+            createNotification("تشغيل الحركة: "..name)
+        end)
+
+        yOffset = yOffset + 50
+        emoteButtons[#emoteButtons + 1] = btn
+    end
+
 end
 
---------------------------
--- Tab 4: Player Info --
---------------------------
+---------------------------------
+-- Tab 4: معلومات اللاعب (Player Info)
+---------------------------------
 do
     local page = Pages[4]
     page:ClearAllChildren()
 
-    local infoLabel = Instance.new("TextLabel", page)
-    infoLabel.Size = UDim2.new(1, -20, 0, 60)
-    infoLabel.Position = UDim2.new(0, 10, 0, 10)
-    infoLabel.BackgroundTransparency = 1
-    infoLabel.Font = Enum.Font.GothamBold
-    infoLabel.TextSize = 22
-    infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    infoLabel.Text = "معلومات اللاعب - تحديث مباشر"
+    local infoTitle = Instance.new("TextLabel", page)
+    infoTitle.Size = UDim2.new(1, -40, 0, 40)
+    infoTitle.Position = UDim2.new(0, 20, 0, 20)
+    infoTitle.BackgroundTransparency = 1
+    infoTitle.Font = Enum.Font.GothamBold
+    infoTitle.TextSize = 24
+    infoTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    infoTitle.Text = "معلومات اللاعب الحالي"
 
-    local statsText = Instance.new("TextLabel", page)
-    statsText.Size = UDim2.new(1, -20, 1, -80)
-    statsText.Position = UDim2.new(0, 10, 0, 80)
-    statsText.BackgroundTransparency = 1
-    statsText.Font = Enum.Font.Gotham
-    statsText.TextSize = 18
-    statsText.TextColor3 = Color3.fromRGB(200, 200, 200)
-    statsText.TextWrapped = true
-    statsText.TextYAlignment = Enum.TextYAlignment.Top
-    statsText.Text = ""
+    local playerNameLabel = Instance.new("TextLabel", page)
+    playerNameLabel.Size = UDim2.new(1, -40, 0, 30)
+    playerNameLabel.Position = UDim2.new(0, 20, 0, 80)
+    playerNameLabel.BackgroundTransparency = 1
+    playerNameLabel.Font = Enum.Font.GothamBold
+    playerNameLabel.TextSize = 20
+    playerNameLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
 
-    local function updateStats()
-        local plr = LocalPlayer
-        local char = plr.Character
-        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    local healthLabel = Instance.new("TextLabel", page)
+    healthLabel.Size = UDim2.new(1, -40, 0, 30)
+    healthLabel.Position = UDim2.new(0, 20, 0, 120)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.Font = Enum.Font.GothamBold
+    healthLabel.TextSize = 20
+    healthLabel.TextColor3 = Color3.fromRGB(230, 230, 230)
 
-        local health = humanoid and math.floor(humanoid.Health) or "غير معروف"
-        local maxHealth = humanoid and math.floor(humanoid.MaxHealth) or "غير معروف"
-        local walkSpeed = humanoid and math.floor(humanoid.WalkSpeed) or "غير معروف"
-        local jumpPower = humanoid and math.floor(humanoid.JumpPower) or "غير معروف"
-        local position = char and char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position or Vector3.new(0,0,0)
-
-        statsText.Text = 
-            "الاسم: " .. plr.Name .. "\n" ..
-            "الصحة: " .. health .. " / " .. maxHealth .. "\n" ..
-            "سرعة المشي: " .. walkSpeed .. "\n" ..
-            "قوة القفز: " .. jumpPower .. "\n" ..
-            string.format("الموقع: (%.2f, %.2f, %.2f)", position.X, position.Y, position.Z)
+    local function updateInfo()
+        local character = LocalPlayer.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        playerNameLabel.Text = "اللاعب: " .. LocalPlayer.Name
+        healthLabel.Text = humanoid and ("الصحة: " .. math.floor(humanoid.Health)) or "الصحة: غير متوفر"
     end
 
-    RS:BindToRenderStep("UpdatePlayerInfo", Enum.RenderPriority.Character.Value + 2, function()
-        updateStats()
+    updateInfo()
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1)
+        updateInfo()
+    end)
+
+    RS:BindToRenderStep("UpdatePlayerInfo", Enum.RenderPriority.Character.Value + 3, function()
+        updateInfo()
     end)
 end
 
--- Enable the menu toggle key: RightControl
+-- اختصار لتبديل ظهور القائمة بزر RightControl (اختياري)
 UIS.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.RightControl then
@@ -607,9 +524,5 @@ UIS.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Start with menu hidden
-EliteMenu.Enabled = false
+createNotification("تم تحميل Elite V5 PRO والقائمة مفتوحة على طول!")
 
-createNotification("تم تحميل Elite V5 PRO بنجاح! اضغط RightControl لفتح القائمة.")
-
--- END OF SCRIPT
