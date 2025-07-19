@@ -1,6 +1,4 @@
--- Elite V5 PRO 2025 (بدون إيموت) + دمج Bang System المحسن مع Auto Noclip وواجهة تحكم متكاملة  
--- السكربت الكامل متكامل، شامل قائمة منيو حديثة بالعربي، تحكم كامل بالسرعة، Bang system متطور مع تذبذب طبيعي، نوكليب تلقائي، ومنيو قوي بدون أي إيموت  
--- صمم خصيصاً لك ليكون جاهز للاستخدام مع أداء سلس ومواصفات احترافية  
+-- تعديل Elite V5 PRO 2025 ليشتغل تلقائيًا بدون الحاجة للضغط على RightShift لفتح القائمة
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -11,7 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 -- Variables للإدارة  
 local EliteMenu = Instance.new("ScreenGui", game.CoreGui)
 EliteMenu.Name = "EliteV5PRO"
-EliteMenu.Enabled = false
+EliteMenu.Enabled = true -- تم تفعيل المنيو تلقائيًا من البداية
 
 -- تبويبات المنيو  
 local Tabs = {"الرئيسية", "Bang System", "معلومات اللاعب"}
@@ -508,23 +506,7 @@ do
     end)
 end
 
--- تفعيل/إخفاء المنيو بزر RightShift  
-UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        EliteMenu.Enabled = not EliteMenu.Enabled
-        if EliteMenu.Enabled then
-            createNotification("Elite V5 PRO مفعل", 3)
-        else
-            createNotification("Elite V5 PRO معطل", 3)
-        end
-    end
-end)
-
--- رسالة أولية للمستخدم  
-createNotification("اضغط RightShift لفتح القائمة", 4)
-
--- ضبط سرعة اللاعب لحالة عدم الاستخدام (السلامة)  
+-- إعادة ضبط السرعة عند ولادة الشخصية  
 local function resetSpeed()
     if LocalPlayer.Character then
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -535,7 +517,6 @@ local function resetSpeed()
     end
 end
 
--- عند الموت أو إعادة تحميل الشخصية  
 LocalPlayer.CharacterAdded:Connect(function(char)
     task.wait(1)
     if not BangActive then
@@ -545,6 +526,5 @@ end)
 
 -- فور بدء السكربت  
 resetSpeed()
-EliteMenu.Enabled = false
 
--- Script Complete and fully optimized  
+createNotification("Elite V5 PRO مفعل تلقائيًا بدون حاجة لزر RightShift", 4)
