@@ -1,18 +1,20 @@
--- تعديل Elite V5 PRO 2025 ليشتغل تلقائيًا بدون الحاجة للضغط على RightShift لفتح القائمة
+-- Elite V5 PRO 2025 - نسخة محسنة بالكامل مع انيميشن Fade In / Fade Out و UI سلس واحترافي مع دعم عربي سعودي كامل
+-- يمكنك تحريك، تصغير، تكبير الواجهة بسهولة، مع إضافة صورة بروفايل اللاعب في صفحة معلومات اللاعب
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Variables للإدارة  
+-- المتغيرات الأساسية  
 local EliteMenu = Instance.new("ScreenGui", game.CoreGui)
 EliteMenu.Name = "EliteV5PRO"
-EliteMenu.Enabled = true -- تم تفعيل المنيو تلقائيًا من البداية
+EliteMenu.Enabled = false -- يبدأ مخفي، سنفعله بعد الانيميشن
 
 -- تبويبات المنيو  
-local Tabs = {"الرئيسية", "Bang System", "معلومات اللاعب"}
+local Tabs = {"الرئيسية", "نظام البانج", "معلومات اللاعب"}
 
 -- الحالات  
 local BangActive = false
@@ -23,12 +25,33 @@ local OSCILLATION_AMPLITUDE = 2.5
 local OSCILLATION_FREQUENCY = 1.2
 local BASE_FOLLOW_DISTANCE = 3.5
 
--- وظائف مساعدة  
+-- UI Settings  
+local UI_MIN_SIZE = Vector2.new(350, 250)
+local UI_MAX_SIZE = Vector2.new(700, 450)
 
+-- دوال مساعدة UI  
 local function addUICorner(obj, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius)
     corner.Parent = obj
+end
+
+local function addShadow(parent)
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.BackgroundTransparency = 1
+    shadow.Image = "rbxassetid://4767419729" -- Shadow asset
+    shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.ImageTransparency = 0.6
+    shadow.Size = UDim2.new(1, 14, 1, 14)
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+    shadow.SliceScale = 0.06
+    shadow.ZIndex = 0
+    shadow.Parent = parent
+    return shadow
 end
 
 local function createNotification(text, duration)
@@ -43,12 +66,15 @@ local function createNotification(text, duration)
     notif.BackgroundTransparency = 0.3
     notif.AnchorPoint = Vector2.new(0.5, 0)
     addUICorner(notif, 15)
+    TweenService:Create(notif, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
     task.delay(duration or 3, function()
+        TweenService:Create(notif, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        task.wait(0.5)
         notif:Destroy()
     end)
 end
 
--- دالة النوكليب  
+-- نوكليب كما في سكربتك  
 local function SetNoclip(enabled)
     if not LocalPlayer.Character then return end
     for _, part in pairs(LocalPlayer.Character:GetChildren()) do
@@ -63,13 +89,13 @@ RS:BindToRenderStep("DisablePlayerInput", Enum.RenderPriority.Character.Value + 
     if BangActive and LocalPlayer.Character then
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid.PlatformStand = true -- يمنع تحكم اليد
+            humanoid.PlatformStand = true
         end
     else
         if LocalPlayer.Character then
             local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
             if humanoid then
-                humanoid.PlatformStand = false -- يعيد التحكم اليدوي
+                humanoid.PlatformStand = false
             end
         end
     end
@@ -92,7 +118,6 @@ local function FollowTarget(dt)
     local basePosition = targetHRP.Position - targetLookVector * BASE_FOLLOW_DISTANCE
     local desiredPosition = basePosition + targetLookVector * oscillation
 
-    -- منع تجاوز الموقع للهدف  
     local vectorToDesired = desiredPosition - targetHRP.Position
     if vectorToDesired:Dot(targetLookVector) > 0 then
         desiredPosition = basePosition
@@ -127,7 +152,7 @@ local function StartBang(targetName)
     TargetPlayer = target
     BangActive = true
     SetNoclip(true)
-    createNotification("Bang مفعل على اللاعب: " .. TargetPlayer.Name, 3)
+    createNotification("تم تفعيل نظام البانج على: " .. TargetPlayer.Name, 3)
     return true
 end
 
@@ -135,16 +160,67 @@ local function StopBang()
     BangActive = false
     TargetPlayer = nil
     SetNoclip(false)
-    createNotification("تم إيقاف Bang وإعادة التحكم.", 3)
+    createNotification("تم إيقاف نظام البانج وإعادة التحكم", 3)
 end
 
--- واجهة المستخدم - بناء منيو  
+-- إنشاء الواجهة - Frame رئيسي مع الظل  
 local MainFrame = Instance.new("Frame", EliteMenu)
-MainFrame.Size = UDim2.new(0, 480, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -175)
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
 MainFrame.BackgroundColor3 = Color3.fromRGB(35, 10, 70)
 MainFrame.BorderSizePixel = 0
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 addUICorner(MainFrame, 20)
+addShadow(MainFrame)
+
+-- خاصية السحب  
+local dragging, dragInput, dragStart, startPos
+
+local function updatePosition(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updatePosition(input)
+    end
+end)
+
+-- تكبير وتصغير Frame مع أنيميشن سلس  
+local scale = 1
+local function scaleUI(amount)
+    scale = math.clamp(scale + amount, 0.6, 1.5)
+    local newSize = UDim2.new(0, 600 * scale, 0, 400 * scale)
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = newSize})
+    tween:Play()
+end
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseWheel then
+        scaleUI(input.Position.Z > 0 and 0.1 or -0.1)
+    end
+end)
 
 -- عنوان المنيو  
 local TitleLabel = Instance.new("TextLabel", MainFrame)
@@ -154,16 +230,17 @@ TitleLabel.BackgroundTransparency = 1
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 28
 TitleLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
-TitleLabel.Text = "Elite V5 PRO 2025 - بدون إيموت"
+TitleLabel.Text = "Elite V5 PRO 2025 - نسخة عربية سعودية"
 TitleLabel.TextScaled = true
 
 -- تاب قائمة التبويبات  
 local TabsFrame = Instance.new("Frame", MainFrame)
-TabsFrame.Size = UDim2.new(0, 120, 1, -50)
+TabsFrame.Size = UDim2.new(0, 140, 1, -50)
 TabsFrame.Position = UDim2.new(0, 0, 0, 50)
 TabsFrame.BackgroundColor3 = Color3.fromRGB(20, 5, 40)
 TabsFrame.BorderSizePixel = 0
 addUICorner(TabsFrame, 16)
+addShadow(TabsFrame)
 
 local Pages = {}
 local Buttons = {}
@@ -185,17 +262,25 @@ local function switchTab(index)
     selectedTabIndex = index
 end
 
--- إنشاء أزرار التبويبات  
+-- إنشاء أزرار التبويبات مع تدرج لوني جميل  
 for i, tabName in ipairs(Tabs) do
     local btn = Instance.new("TextButton", TabsFrame)
-    btn.Size = UDim2.new(1, -10, 0, 50)
-    btn.Position = UDim2.new(0, 5, 0, (i - 1) * 55 + 10)
+    btn.Size = UDim2.new(1, -20, 0, 50)
+    btn.Position = UDim2.new(0, 10, 0, (i - 1) * 60 + 10)
     btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(130, 50, 220) or Color3.fromRGB(80, 30, 120)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 20
     btn.Text = tabName
     addUICorner(btn, 14)
+    addShadow(btn)
+
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(170, 70, 255)}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = (i == selectedTabIndex) and Color3.fromRGB(130, 50, 220) or Color3.fromRGB(80, 30, 120)}):Play()
+    end)
 
     btn.MouseButton1Click:Connect(function()
         switchTab(i)
@@ -207,8 +292,8 @@ end
 -- إنشاء صفحات التبويبات  
 for i = 1, #Tabs do
     local page = Instance.new("Frame", MainFrame)
-    page.Size = UDim2.new(1, -120, 1, -50)
-    page.Position = UDim2.new(0, 120, 0, 50)
+    page.Size = UDim2.new(1, -140, 1, -50)
+    page.Position = UDim2.new(0, 140, 0, 50)
     page.BackgroundTransparency = 1
     page.Visible = (i == 1)
     Pages[i] = page
@@ -217,10 +302,11 @@ end
 -- صفحة 1: الرئيسية (Speed Hack + Fly + Jump Boost)  
 do
     local page = Pages[1]
+
     -- Speed Hack Toggle  
     local speedToggle = Instance.new("TextButton", page)
-    speedToggle.Size = UDim2.new(0, 180, 0, 50)
-    speedToggle.Position = UDim2.new(0, 20, 0, 20)
+    speedToggle.Size = UDim2.new(0, 200, 0, 50)
+    speedToggle.Position = UDim2.new(0, 30, 0, 20)
     speedToggle.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
     speedToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     speedToggle.Font = Enum.Font.GothamBold
@@ -245,18 +331,18 @@ do
         if speedActive then
             setPlayerSpeed(speedValue)
             speedToggle.Text = "إيقاف زيادة السرعة"
-            createNotification("زيادة السرعة مفعلة", 2)
+            createNotification("تم تفعيل زيادة السرعة", 2)
         else
             setPlayerSpeed(16)
             speedToggle.Text = "تفعيل زيادة السرعة"
-            createNotification("زيادة السرعة متوقفة", 2)
+            createNotification("تم إيقاف زيادة السرعة", 2)
         end
     end)
 
     -- Fly Mode Toggle  
     local flyToggle = Instance.new("TextButton", page)
-    flyToggle.Size = UDim2.new(0, 180, 0, 50)
-    flyToggle.Position = UDim2.new(0, 220, 0, 20)
+    flyToggle.Size = UDim2.new(0, 200, 0, 50)
+    flyToggle.Position = UDim2.new(0, 250, 0, 20)
     flyToggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
     flyToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     flyToggle.Font = Enum.Font.GothamBold
@@ -341,8 +427,8 @@ do
 
     -- Jump Boost Toggle  
     local jumpToggle = Instance.new("TextButton", page)
-    jumpToggle.Size = UDim2.new(0, 180, 0, 50)
-    jumpToggle.Position = UDim2.new(0, 20, 0, 90)
+    jumpToggle.Size = UDim2.new(0, 200, 0, 50)
+    jumpToggle.Position = UDim2.new(0, 30, 0, 90)
     jumpToggle.BackgroundColor3 = Color3.fromRGB(200, 100, 20)
     jumpToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
     jumpToggle.Font = Enum.Font.GothamBold
@@ -351,25 +437,20 @@ do
     addUICorner(jumpToggle, 15)
 
     local jumpActive = false
-    local jumpPowerValue = 100
+    local jumpPower = 100
 
     jumpToggle.MouseButton1Click:Connect(function()
         jumpActive = not jumpActive
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if jumpActive then
-            if LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.JumpPower = jumpPowerValue
-                end
+            if humanoid then
+                humanoid.JumpPower = jumpPower
             end
             jumpToggle.Text = "إيقاف تعزيز القفز"
             createNotification("تم تفعيل تعزيز القفز", 2)
         else
-            if LocalPlayer.Character then
-                local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.JumpPower = 50
-                end
+            if humanoid then
+                humanoid.JumpPower = 50
             end
             jumpToggle.Text = "تفعيل تعزيز القفز"
             createNotification("تم إيقاف تعزيز القفز", 2)
@@ -377,57 +458,54 @@ do
     end)
 end
 
--- صفحة 2: Bang System (دمج سكربتك المحسن)  
+-- صفحة 2: نظام البانج Bang System  
 do
     local page = Pages[2]
 
-    local infoLabel = Instance.new("TextLabel", page)
-    infoLabel.Size = UDim2.new(1, -40, 0, 40)
-    infoLabel.Position = UDim2.new(0, 20, 0, 10)
-    infoLabel.BackgroundTransparency = 1
-    infoLabel.Font = Enum.Font.GothamBold
-    infoLabel.TextSize = 20
-    infoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
-    infoLabel.Text = "Elite Bang System + Auto Noclip 2025"
+    local LabelTitle = Instance.new("TextLabel", page)
+    LabelTitle.Size = UDim2.new(1, -40, 0, 40)
+    LabelTitle.Position = UDim2.new(0, 20, 0, 10)
+    LabelTitle.BackgroundTransparency = 1
+    LabelTitle.Font = Enum.Font.GothamBold
+    LabelTitle.TextSize = 26
+    LabelTitle.TextColor3 = Color3.fromRGB(230, 230, 250)
+    LabelTitle.Text = "نظام بانج - تتبع اللاعب مع Noclip تلقائي"
+    LabelTitle.TextXAlignment = Enum.TextXAlignment.Center
 
-    -- إدخال اسم اللاعب  
-    local TextBox = Instance.new("TextBox", page)
-    TextBox.Size = UDim2.new(0, 280, 0, 40)
-    TextBox.Position = UDim2.new(0, 20, 0, 60)
-    TextBox.PlaceholderText = "أدخل اسم اللاعب الهدف"
-    TextBox.Font = Enum.Font.GothamBold
-    TextBox.TextSize = 22
-    TextBox.TextColor3 = Color3.fromRGB(230, 230, 230)
-    TextBox.BackgroundColor3 = Color3.fromRGB(70, 25, 100)
-    addUICorner(TextBox, 14)
+    local InputBox = Instance.new("TextBox", page)
+    InputBox.Size = UDim2.new(1, -40, 0, 40)
+    InputBox.Position = UDim2.new(0, 20, 0, 60)
+    InputBox.PlaceholderText = "أدخل اسم اللاعب الهدف"
+    InputBox.Font = Enum.Font.GothamBold
+    InputBox.TextSize = 22
+    InputBox.TextColor3 = Color3.fromRGB(245, 245, 255)
+    InputBox.BackgroundColor3 = Color3.fromRGB(50, 15, 80)
+    addUICorner(InputBox, 15)
 
-    -- زر تشغيل Bang  
     local StartBtn = Instance.new("TextButton", page)
-    StartBtn.Size = UDim2.new(0, 120, 0, 50)
-    StartBtn.Position = UDim2.new(0, 20, 0, 120)
-    StartBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
+    StartBtn.Size = UDim2.new(0.48, -10, 0, 45)
+    StartBtn.Position = UDim2.new(0, 20, 0, 110)
+    StartBtn.Text = "تشغيل البانج"
     StartBtn.Font = Enum.Font.GothamBold
-    StartBtn.TextSize = 24
+    StartBtn.TextSize = 22
+    StartBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 70)
     StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    StartBtn.Text = "تشغيل Bang"
     addUICorner(StartBtn, 15)
 
-    -- زر إيقاف Bang  
     local StopBtn = Instance.new("TextButton", page)
-    StopBtn.Size = UDim2.new(0, 120, 0, 50)
-    StopBtn.Position = UDim2.new(0, 160, 0, 120)
-    StopBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    StopBtn.Size = UDim2.new(0.48, -10, 0, 45)
+    StopBtn.Position = UDim2.new(0.52, 0, 0, 110)
+    StopBtn.Text = "إيقاف البانج"
     StopBtn.Font = Enum.Font.GothamBold
-    StopBtn.TextSize = 24
+    StopBtn.TextSize = 22
+    StopBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
     StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    StopBtn.Text = "إيقاف Bang"
     addUICorner(StopBtn, 15)
 
-    -- أحداث الأزرار  
     StartBtn.MouseButton1Click:Connect(function()
-        local name = TextBox.Text
+        local name = InputBox.Text
         if name == "" then
-            createNotification("يرجى إدخال اسم اللاعب الهدف", 3)
+            createNotification("يرجى إدخال اسم اللاعب الهدف", 2)
             return
         end
         local success = StartBang(name)
@@ -441,7 +519,7 @@ do
     end)
 end
 
--- صفحة 3: معلومات اللاعب  
+-- صفحة 3: معلومات اللاعب مع صورة البروفايل  
 do
     local page = Pages[3]
 
@@ -450,16 +528,25 @@ do
     infoLabel.Position = UDim2.new(0, 20, 0, 10)
     infoLabel.BackgroundTransparency = 1
     infoLabel.Font = Enum.Font.GothamBold
-    infoLabel.TextSize = 22
+    infoLabel.TextSize = 26
     infoLabel.TextColor3 = Color3.fromRGB(255, 220, 220)
     infoLabel.Text = "معلومات حسابك والبيئة المحيطة"
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+    local profileImage = Instance.new("ImageLabel", page)
+    profileImage.Size = UDim2.new(0, 150, 0, 150)
+    profileImage.Position = UDim2.new(0, 20, 0, 60)
+    profileImage.BackgroundTransparency = 1
+    profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(LocalPlayer.UserId) .. "&w=420&h=420"
+    addUICorner(profileImage, 75)
+    addShadow(profileImage)
 
     local infoText = Instance.new("TextLabel", page)
-    infoText.Size = UDim2.new(1, -40, 1, -70)
-    infoText.Position = UDim2.new(0, 20, 0, 60)
+    infoText.Size = UDim2.new(1, -200, 1, -70)
+    infoText.Position = UDim2.new(0, 180, 0, 60)
     infoText.BackgroundTransparency = 1
     infoText.Font = Enum.Font.Code
-    infoText.TextSize = 18
+    infoText.TextSize = 20
     infoText.TextColor3 = Color3.fromRGB(220, 220, 220)
     infoText.TextXAlignment = Enum.TextXAlignment.Left
     infoText.TextYAlignment = Enum.TextYAlignment.Top
@@ -506,7 +593,12 @@ do
     end)
 end
 
--- إعادة ضبط السرعة عند ولادة الشخصية  
+-- تشغيل الواجهة مع انيميشن Fade In  
+EliteMenu.Enabled = true
+MainFrame.BackgroundTransparency = 1
+TweenService:Create(MainFrame, TweenInfo.new(1.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundTransparency = 0}):Play()
+
+-- عند ولادة الشخصية، إعادة ضبط السرعة  
 local function resetSpeed()
     if LocalPlayer.Character then
         local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -524,7 +616,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end
 end)
 
--- فور بدء السكربت  
 resetSpeed()
 
-createNotification("Elite V5 PRO مفعل تلقائيًا بدون حاجة لزر RightShift", 4)
+createNotification("Elite V5 PRO مفعل تلقائيًا مع واجهة سلسة وعربية سعودية", 4)
+
