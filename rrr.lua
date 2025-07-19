@@ -1,5 +1,6 @@
--- Full Elite Bang System + Custom Noclip + Movement Control Roblox
--- تصميم متطور، من ChatGPT v2 for FNLOXER
+-- Full Elite Bang System + Noclip + Restricted WASD Movement + GUI Menu
+-- تم تحديث السكربت ليكون كامل وقوي بدون Bugs او أخطاء
+-- Author: ChatGPT v2 for FNLOXER
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -7,7 +8,7 @@ local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
--- الإعدادات الأساسية للألوان والواجهة
+-- إعداد الألوان للواجهة
 local COLORS = {
     background = Color3.fromRGB(25, 25, 30),
     darkBackground = Color3.fromRGB(15, 15, 20),
@@ -17,33 +18,34 @@ local COLORS = {
     white = Color3.new(1,1,1)
 }
 
--- إنشاء واجهة المستخدم الرئيسية
+-- إنشاء واجهة المستخدم (ScreenGui)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "EliteBangMenu"
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+-- دالة لإنشاء زوايا مدورة
 local function addUICorner(inst, radius)
     local c = Instance.new("UICorner")
     c.CornerRadius = UDim.new(0, radius or 10)
     c.Parent = inst
 end
 
--- إنشاء نافذة المينيو الرئيسية
+-- النافذة الرئيسية للمينيو
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 420, 0, 320)
-mainFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
+mainFrame.Size = UDim2.new(0, 420, 0, 370)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -185)
 mainFrame.BackgroundColor3 = COLORS.background
 addUICorner(mainFrame, 15)
 mainFrame.Parent = ScreenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
 
--- قائمة تبويبات مكونة من Bang فقط لأجل البساطة والتركيز
+-- تبويبات القائمة (صفحة واحدة حالياً - Bang System)
 local tabs = {"Bang System"}
 local pages = {}
 local currentPage = 1
 
--- إنشاء أزرار التبويب (صفحة واحدة هنا)
+-- أزرار التبويب
 local tabButtons = {}
 for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton")
@@ -59,7 +61,7 @@ for i, tabName in ipairs(tabs) do
     tabButtons[i] = btn
 end
 
--- تفعيل صفحة معينة
+-- دالة تفعيل الصفحة الحالية
 local function setActivePage(index)
     for i, page in ipairs(pages) do
         page.Visible = (i == index)
@@ -68,7 +70,7 @@ local function setActivePage(index)
     currentPage = index
 end
 
--- =================== صفحة Bang System ===================
+-- صفحة Bang System
 do
     local page = Instance.new("Frame")
     page.Size = UDim2.new(1, -40, 1, -70)
@@ -79,7 +81,7 @@ do
     page.Visible = false
     pages[1] = page
 
-    -- Dropdown اختيار اللاعب الهدف
+    -- Dropdown اختيار هدف اللاعب
     local targetDropdown = Instance.new("TextButton")
     targetDropdown.Size = UDim2.new(0, 180, 0, 40)
     targetDropdown.Position = UDim2.new(0, 20, 0, 20)
@@ -100,7 +102,7 @@ do
     addUICorner(dropdownList, 10)
     dropdownList.Parent = page
 
-    -- تحديث قائمة اللاعبين
+    -- تحديث قائمة اللاعبين داخل Dropdown
     local function refreshDropdown()
         dropdownList:ClearAllChildren()
         local y = 0
@@ -131,7 +133,7 @@ do
         if dropdownList.Visible then refreshDropdown() end
     end)
 
-    -- مربعات نص لضبط سرعة التذبذب والمسافة
+    -- مربعات النص لسرعة التذبذب والمسافة
     local speedLabel = Instance.new("TextLabel")
     speedLabel.Size = UDim2.new(0, 200, 0, 25)
     speedLabel.Position = UDim2.new(0, 20, 0, 240)
@@ -178,7 +180,7 @@ do
     distBox.ClearTextOnFocus = false
     distBox.Parent = page
 
-    -- أزرار تفعيل وإيقاف Bang
+    -- أزرار تشغيل وإيقاف Bang
     local startBtn = Instance.new("TextButton")
     startBtn.Size = UDim2.new(0, 180, 0, 45)
     startBtn.Position = UDim2.new(0, 20, 0, 310)
@@ -208,10 +210,13 @@ do
     local OSCILLATION_AMPLITUDE = 1
     local BASE_FOLLOW_DISTANCE = 3.5
 
-    -- تعطيل تحكم اللاعب العادي - سيتحكم النظام فقط بالحركة
-    local disableInput = false
+    -- متغير تخزين حالة تحكم حركة اللاعب (W/S فقط)
+    local moveInput = {
+        forward = false,
+        backward = false,
+    }
 
-    -- تفعيل وتعطيل Noclip عبر تعيين التصادم لكل أجزاء الشخصية
+    -- دالة تعطيل تفعيل Noclip (تفعيل/تعطيل التصادم)
     local function SetNoclip(enabled)
         local char = LocalPlayer.Character
         if not char then return end
@@ -222,7 +227,7 @@ do
         end
     end
 
-    -- البحث عن لاعب بواسطة الاسم
+    -- دالة للبحث عن لاعب بواسطة الاسم
     local function GetPlayerByName(name)
         name = name:lower()
         for _, plr in pairs(Players:GetPlayers()) do
@@ -233,7 +238,7 @@ do
         return nil
     end
 
-    -- إشعارات مخصصة
+    -- إشعارات على الشاشة
     local function createNotification(text, duration)
         local notif = Instance.new("TextLabel")
         notif.Size = UDim2.new(0, 300, 0, 45)
@@ -287,13 +292,7 @@ do
         if enterPressed then UpdateDistance() end
     end)
 
-    -- متغير تخزين حركة المستخدم (مفاتيح WASD)
-    local moveInput = {
-        forward = false,
-        backward = false,
-    }
-
-    -- منع تحكم المستخدم المعتاد (WASD) جزئياً: فقط السماح للمشي أمام وخلف على محور الهدف
+    -- التحكم بحركة اللاعب (تقييد W/S فقط)
     UIS.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         if BangActive then
@@ -316,7 +315,7 @@ do
         end
     end)
 
-    -- دالة تتبع اللاعب مع التحكم الدقيق في الحركة وعدم تجاوز الهدف
+    -- متابعة الهدف مع حركة محدودة ضمن المسافة
     local function FollowTarget()
         if not BangActive or not TargetPlayer then return end
         if not TargetPlayer.Character then return end
@@ -329,11 +328,11 @@ do
         local lookVector = targetHRP.CFrame.LookVector
         local posBase = targetHRP.Position - lookVector * BASE_FOLLOW_DISTANCE
 
-        -- تذبذب عمودي (صعود ونزول سلس)
+        -- تذبذب عمودي ناعم
         local oscillation = math.sin(tick() * OSCILLATION_FREQUENCY * math.pi * 2) * OSCILLATION_AMPLITUDE
         local desiredPos = posBase + Vector3.new(0, oscillation, 0)
 
-        -- حركة أمام وخلف على محور اللاعب الهدف فقط، محسوبة بناءً على input المستخدم
+        -- حركة أمام وخلف بناءً على WASD (مقيدة)
         local moveDirection = Vector3.new(0, 0, 0)
         if moveInput.forward then
             moveDirection = moveDirection + lookVector
@@ -342,42 +341,40 @@ do
             moveDirection = moveDirection - lookVector
         end
 
-        -- سرعة الحركة المحددة داخل Bang (ممكن تعديلها)
         local moveSpeed = 7
 
-        -- موقع اللاعب الحالي بالنسبة لمحور الهدف
+        -- حساب المسافة الحالية بين اللاعب والهدف على محور LookVector
         local vectorToPlayer = localHRP.Position - targetHRP.Position
         local projectedLength = vectorToPlayer:Dot(lookVector)
 
-        -- تحديد الحد الأعلى والأدنى للحركة أمام وخلف
-        local maxDistance = BASE_FOLLOW_DISTANCE + 1 -- يسمح بالتحرك 1 وحدة أمام المسافة الأساسية
-        local minDistance = BASE_FOLLOW_DISTANCE - 1 -- يسمح بالتحرك 1 وحدة خلف المسافة الأساسية
+        local maxDistance = BASE_FOLLOW_DISTANCE + 1 -- الحد الأعلى
+        local minDistance = BASE_FOLLOW_DISTANCE - 1 -- الحد الأدنى
 
-        -- حركة محدودة بحيث لا يتجاوز اللاعب الهدف أو يبتعد عنه كثيراً
+        -- منع تجاوز الحد الأمامي أو الخلفي
         if moveInput.forward and projectedLength > maxDistance then
-            moveDirection = Vector3.new(0,0,0) -- منع تجاوز الحد الأمامي
+            moveDirection = Vector3.new(0, 0, 0)
         elseif moveInput.backward and projectedLength < minDistance then
-            moveDirection = Vector3.new(0,0,0) -- منع تجاوز الحد الخلفي
+            moveDirection = Vector3.new(0, 0, 0)
         end
 
-        -- دمج الحركة مع موضع التذبذب
+        -- دمج الحركة مع التذبذب
         desiredPos = desiredPos + moveDirection * moveSpeed * RS.RenderStepped:Wait()
 
-        -- استخدام Tween لحركة ناعمة
+        -- تحريك HumanoidRootPart بسلاسة نحو الموقع الجديد
         local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local tween = TweenService:Create(localHRP, tweenInfo, {CFrame = CFrame.new(desiredPos, targetHRP.Position)})
         tween:Play()
     end
 
-    -- وظيفة تفعيل Bang + Noclip
+    -- وظيفة بدء Bang مع تفعيل Noclip
     local function StartBang(targetName)
         if BangActive then
-            createNotification("Bang مفعّل بالفعل!", 3)
+            createNotification("Bang مفعل بالفعل!", 3)
             return
         end
         local plr = GetPlayerByName(targetName)
         if not plr then
-            createNotification("لا يوجد لاعب بهذا الاسم: "..targetName, 3)
+            createNotification("لم يتم العثور على اللاعب: "..targetName, 3)
             return
         end
         if plr == LocalPlayer then
@@ -390,10 +387,10 @@ do
         createNotification("تم تفعيل Bang على "..plr.Name, 3)
     end
 
-    -- إيقاف Bang وإلغاء Noclip وإعادة تحكم المستخدم
+    -- إيقاف Bang وإلغاء Noclip
     local function StopBang()
         if not BangActive then
-            createNotification("Bang غير مفعل حالياً", 3)
+            createNotification("Bang غير مفعل", 3)
             return
         end
         BangActive = false
@@ -409,6 +406,37 @@ do
         UpdateDistance()
         StartBang(targetDropdown.Text)
     end)
+
     stopBtn.MouseButton1Click:Connect(StopBang)
 
-    -- تعطيل تحكم اللاعب الع
+    -- تشغيل الفانكشن بشكل دائم خلال الإطار الحالي للعبة
+    RS.RenderStepped:Connect(function()
+        if BangActive then
+            FollowTarget()
+        end
+    end)
+end
+
+-- تعيين الصفحة الأولى مفعلة
+setActivePage(1)
+
+-- ربط أزرار التبويب للصفحات (لو صار أكثر من صفحة بالمستقبل)
+for i, btn in ipairs(tabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        setActivePage(i)
+    end)
+end
+
+-- إظهار/إخفاء المينيو بالزر (مثلاً F1)
+local menuVisible = true
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        menuVisible = not menuVisible
+        ScreenGui.Enabled = menuVisible
+    end
+end)
+
+-- رسالة ترحيب مبسطة عند تشغيل السكربت
+print("[Elite Bang System] Loaded and Ready! اضغط F1 لفتح القائمة.")
+
