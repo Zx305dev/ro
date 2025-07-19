@@ -1,88 +1,196 @@
---[[
-Elite Roblox Hack GUI - Full Script
-Features:
-- Player Info UI (Avatar, Name, UserID, Account Age)
-- ESP with configurable colors
-- Hacks page with toggles for Noclip, Fly, Speed, Jump
-- Bang target follow system
-- Notifications system
-- Smooth UI with rounded corners and Arabic text
-
-Made for Roblox exploiting contexts.
-]]
+-- Elite Hack System 2025 - By ALm6eri
+-- Roblox Exploit GUI with Tabs, Purple theme, ESP, Bang, Noclip, Fly, Speed, Jump
+-- Complete with error handling and update loops
 
 local Players = game:GetService("Players")
 local RS = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
--- Color Definitions
+-- ==================== CONFIGURATION =====================
 local COLORS = {
-    white = Color3.fromRGB(255,255,255),
     purple = Color3.fromRGB(145, 57, 255),
-    red = Color3.fromRGB(255, 57, 57),
+    white = Color3.fromRGB(255, 255, 255),
+    darkBG = Color3.fromRGB(40, 40, 50),
     green = Color3.fromRGB(57, 255, 57),
-    darkBackground = Color3.fromRGB(40, 40, 50),
+    red = Color3.fromRGB(255, 57, 57),
 }
 
--- Helper: Add rounded corners to UI
-local function addUICorner(obj, radius)
+local WALK_SPEED_BASE = 16
+local JUMP_POWER_BASE = 50
+
+-- ==================== UTILITIES =====================
+local function addUICorner(inst, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius)
-    corner.Parent = obj
+    corner.Parent = inst
 end
 
--- Notification function
 local function notify(msg)
-    print("[Notify] " .. msg) -- replace with UI notif if needed
+    -- Simple console print notification, can be enhanced to GUI toast
+    print("[EliteHackNotify] " .. msg)
 end
 
--- Main Screen GUI
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+local function isValidColorName(name)
+    if not name then return false end
+    return COLORS[name:lower()] ~= nil
+end
+
+local function safeNumberParse(str, default)
+    local num = tonumber(str)
+    if num and num >= 0 then
+        return num
+    else
+        return default
+    end
+end
+
+local function getHumanoidRootPart(character)
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
+
+local function getHumanoid(character)
+    if not character then return nil end
+    return character:FindFirstChildOfClass("Humanoid")
+end
+
+local function getPlayerByName(name)
+    if not name or name == "" then return nil end
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr.Name:lower() == name:lower() then
+            return plr
+        end
+    end
+    return nil
+end
+
+-- ==================== STATE =====================
+local hackSettings = {
+    esp = {
+        enabled = false,
+        color = COLORS.purple,
+        boxes = {}, -- store esp boxes
+    },
+    noclip = {
+        enabled = false,
+    },
+    fly = {
+        enabled = false,
+        speed = 50,
+        bodyVelocity = nil,
+    },
+    speed = {
+        enabled = false,
+        multiplier = 2, -- speed multiplier (e.g. 2x)
+    },
+    jump = {
+        enabled = false,
+        power = 100,
+    },
+    bang = {
+        active = false,
+        target = nil,
+        oscillationFrequency = 1.2,
+        oscillationAmplitude = 3,
+        baseFollowDistance = 5,
+    }
+}
+
+local noclipEnabled = false
+local flyEnabled = false
+local speedEnabled = false
+local jumpEnabled = false
+local flying = false
+
+-- ==================== GUI SETUP =====================
+local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EliteHackGUI"
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 500, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-mainFrame.BackgroundColor3 = COLORS.darkBackground
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 520, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -260, 0.5, -200)
+mainFrame.BackgroundColor3 = COLORS.darkBG
 mainFrame.BorderSizePixel = 0
-addUICorner(mainFrame, 12)
+mainFrame.Parent = screenGui
+addUICorner(mainFrame, 15)
 
--- Pages container
-local pagesContainer = Instance.new("Frame", mainFrame)
-pagesContainer.Size = UDim2.new(1, 0, 1, 0)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 50)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 28
+titleLabel.TextColor3 = COLORS.purple
+titleLabel.Text = "Elite Hack System 2025 - By ALm6eri"
+titleLabel.Parent = mainFrame
+
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, 0, 0, 40)
+tabBar.Position = UDim2.new(0, 0, 0, 50)
+tabBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+tabBar.Parent = mainFrame
+addUICorner(tabBar, 10)
+
+local pagesContainer = Instance.new("Frame")
+pagesContainer.Size = UDim2.new(1, 0, 1, -90)
+pagesContainer.Position = UDim2.new(0, 0, 0, 90)
 pagesContainer.BackgroundTransparency = 1
+pagesContainer.Parent = mainFrame
 
--- Pages table
 local pages = {}
 
--- ===================== Player Info Page =====================
-do
-    local page = Instance.new("Frame", pagesContainer)
+-- Helper to create tab button and page frame
+local function createTab(name, index)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1/4, -10, 1, -10)
+    btn.Position = UDim2.new((index-1)/4, 5, 0, 5)
+    btn.BackgroundColor3 = COLORS.purple
+    btn.TextColor3 = COLORS.white
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.Text = name
+    btn.Parent = tabBar
+    addUICorner(btn, 8)
+
+    local page = Instance.new("Frame")
     page.Size = UDim2.new(1, 0, 1, 0)
     page.BackgroundTransparency = 1
-    page.Visible = true
-    pages["PlayerInfo"] = page
+    page.Visible = false
+    page.Parent = pagesContainer
 
-    local titleLabel = Instance.new("TextLabel", page)
-    titleLabel.Size = UDim2.new(1, -40, 0, 35)
-    titleLabel.Position = UDim2.new(0, 20, 0, 10)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 26
-    titleLabel.TextColor3 = COLORS.white
-    titleLabel.Text = "معلومات اللاعب"
+    pages[name] = page
 
-    local playerImage = Instance.new("ImageLabel", page)
+    return btn, page
+end
+
+-- ==================== PAGE CREATION =====================
+
+-- 1. Player Info Page
+local infoBtn, infoPage = createTab("معلومات اللاعب", 1)
+
+do
+    local title = Instance.new("TextLabel", infoPage)
+    title.Size = UDim2.new(1, -40, 0, 35)
+    title.Position = UDim2.new(0, 20, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 26
+    title.TextColor3 = COLORS.white
+    title.Text = "معلومات اللاعب"
+
+    local playerImage = Instance.new("ImageLabel", infoPage)
     playerImage.Size = UDim2.new(0, 140, 0, 140)
     playerImage.Position = UDim2.new(0, 20, 0, 55)
-    playerImage.BackgroundColor3 = COLORS.darkBackground
+    playerImage.BackgroundColor3 = COLORS.darkBG
     playerImage.BorderSizePixel = 0
     addUICorner(playerImage, 12)
     playerImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
 
-    local playerNameLabel = Instance.new("TextLabel", page)
+    local playerNameLabel = Instance.new("TextLabel", infoPage)
     playerNameLabel.Size = UDim2.new(0, 250, 0, 35)
     playerNameLabel.Position = UDim2.new(0, 180, 0, 70)
     playerNameLabel.BackgroundTransparency = 1
@@ -91,7 +199,7 @@ do
     playerNameLabel.TextColor3 = COLORS.white
     playerNameLabel.Text = "الاسم: " .. LocalPlayer.Name
 
-    local playerUserIdLabel = Instance.new("TextLabel", page)
+    local playerUserIdLabel = Instance.new("TextLabel", infoPage)
     playerUserIdLabel.Size = UDim2.new(0, 250, 0, 30)
     playerUserIdLabel.Position = UDim2.new(0, 180, 0, 110)
     playerUserIdLabel.BackgroundTransparency = 1
@@ -100,7 +208,7 @@ do
     playerUserIdLabel.TextColor3 = COLORS.white
     playerUserIdLabel.Text = "UserID: " .. tostring(LocalPlayer.UserId)
 
-    local playerAccountAgeLabel = Instance.new("TextLabel", page)
+    local playerAccountAgeLabel = Instance.new("TextLabel", infoPage)
     playerAccountAgeLabel.Size = UDim2.new(0, 250, 0, 30)
     playerAccountAgeLabel.Position = UDim2.new(0, 180, 0, 145)
     playerAccountAgeLabel.BackgroundTransparency = 1
@@ -109,7 +217,6 @@ do
     playerAccountAgeLabel.TextColor3 = COLORS.white
     playerAccountAgeLabel.Text = "عمر الحساب: " .. tostring(LocalPlayer.AccountAge) .. " يوم"
 
-    -- Refresh player image every 60 seconds
     coroutine.wrap(function()
         while true do
             wait(60)
@@ -118,22 +225,18 @@ do
     end)()
 end
 
--- ===================== ESP Page =====================
-do
-    local espPage = Instance.new("Frame", pagesContainer)
-    espPage.Size = UDim2.new(1, 0, 1, 0)
-    espPage.BackgroundTransparency = 1
-    espPage.Visible = false
-    pages["ESP"] = espPage
+-- 2. ESP Page
+local espBtn, espPage = createTab("نظام ESP", 2)
 
-    local espTitle = Instance.new("TextLabel", espPage)
-    espTitle.Size = UDim2.new(1, -40, 0, 40)
-    espTitle.Position = UDim2.new(0, 20, 0, 10)
-    espTitle.BackgroundTransparency = 1
-    espTitle.Font = Enum.Font.GothamBold
-    espTitle.TextSize = 24
-    espTitle.TextColor3 = COLORS.white
-    espTitle.Text = "نظام ESP"
+do
+    local title = Instance.new("TextLabel", espPage)
+    title.Size = UDim2.new(1, -40, 0, 40)
+    title.Position = UDim2.new(0, 20, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 24
+    title.TextColor3 = COLORS.white
+    title.Text = "نظام ESP"
 
     local espToggleBtn = Instance.new("TextButton", espPage)
     espToggleBtn.Size = UDim2.new(0.4, 0, 0, 40)
@@ -161,22 +264,10 @@ do
     colorDropdown.Font = Enum.Font.GothamBold
     colorDropdown.TextSize = 16
     colorDropdown.TextColor3 = COLORS.white
-    colorDropdown.BackgroundColor3 = COLORS.darkBackground
+    colorDropdown.BackgroundColor3 = COLORS.darkBG
     addUICorner(colorDropdown, 8)
 
-    local hackSettings = {
-        esp = {
-            enabled = false,
-            color = COLORS.purple,
-            boxes = {}
-        },
-        noclip = { enabled = false },
-        fly = { enabled = false },
-        speed = { enabled = false },
-        jump = { enabled = false },
-        bang = { active = false, target = nil, oscillationFrequency = 2, oscillationAmplitude = 5, baseFollowDistance = 5 }
-    }
-
+    -- Function to create ESP box for a player
     local function createESPBox(player)
         local box = Instance.new("BillboardGui")
         local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -184,6 +275,7 @@ do
         box.Adornee = hrp
         box.Size = UDim2.new(0, 100, 0, 40)
         box.AlwaysOnTop = true
+        box.Name = "ESPBox_" .. player.Name
 
         local frame = Instance.new("Frame", box)
         frame.Size = UDim2.new(1, 0, 1, 0)
@@ -192,7 +284,7 @@ do
         frame.BorderSizePixel = 1
         frame.BorderColor3 = COLORS.white
         addUICorner(frame, 8)
-        box.Frame = frame
+        frame.Name = "Frame"
 
         local label = Instance.new("TextLabel", frame)
         label.Size = UDim2.new(1, 0, 1, 0)
@@ -205,16 +297,6 @@ do
         return box
     end
 
-    local function updateESPColor(colorName)
-        local c = COLORS[colorName:lower()] or COLORS.purple
-        hackSettings.esp.color = c
-        for _, box in pairs(hackSettings.esp.boxes) do
-            if box and box.Frame then
-                box.Frame.BackgroundColor3 = c
-            end
-        end
-    end
-
     local function removeESPBoxes()
         for _, box in pairs(hackSettings.esp.boxes) do
             if box then box:Destroy() end
@@ -222,12 +304,24 @@ do
         hackSettings.esp.boxes = {}
     end
 
+    local function updateESPColor(colorName)
+        local c = COLORS[colorName:lower()] or COLORS.purple
+        hackSettings.esp.color = c
+        for _, box in pairs(hackSettings.esp.boxes) do
+            if box and box:FindFirstChild("Frame") then
+                box.Frame.BackgroundColor3 = c
+            end
+        end
+    end
+
     espToggleBtn.MouseButton1Click:Connect(function()
         hackSettings.esp.enabled = not hackSettings.esp.enabled
         if hackSettings.esp.enabled then
             espToggleBtn.Text = "إيقاف ESP"
             notify("تم تفعيل ESP")
-            -- Create boxes for all players except local
+
+            -- Create ESP boxes for all other players
+            removeESPBoxes()
             for _, plr in pairs(Players:GetPlayers()) do
                 if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local box = createESPBox(plr)
@@ -246,32 +340,57 @@ do
 
     colorDropdown.FocusLost:Connect(function(enterPressed)
         if enterPressed then
-            updateESPColor(colorDropdown.Text)
+            if isValidColorName(colorDropdown.Text) then
+                updateESPColor(colorDropdown.Text)
+            else
+                notify("لون غير صالح. الرجاء استخدام: purple, red, green, white")
+                colorDropdown.Text = ""
+            end
+        end
+    end)
+
+    -- Auto update ESP when players join or leave
+    Players.PlayerAdded:Connect(function(plr)
+        if hackSettings.esp.enabled and plr ~= LocalPlayer then
+            wait(1) -- Wait for character to load
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local box = createESPBox(plr)
+                if box then
+                    box.Parent = Workspace.CurrentCamera
+                    table.insert(hackSettings.esp.boxes, box)
+                end
+            end
+        end
+    end)
+
+    Players.PlayerRemoving:Connect(function(plr)
+        for i, box in pairs(hackSettings.esp.boxes) do
+            if box and box.Name == "ESPBox_" .. plr.Name then
+                box:Destroy()
+                table.remove(hackSettings.esp.boxes, i)
+                break
+            end
         end
     end)
 end
 
--- ===================== Hacks Page =====================
-do
-    local hacksPage = Instance.new("Frame", pagesContainer)
-    hacksPage.Size = UDim2.new(1, 0, 1, 0)
-    hacksPage.BackgroundTransparency = 1
-    hacksPage.Visible = false
-    pages["Hacks"] = hacksPage
+-- 3. Hacks Page
+local hacksBtn, hacksPage = createTab("الهاكات", 3)
 
-    local hacksTitle = Instance.new("TextLabel", hacksPage)
-    hacksTitle.Size = UDim2.new(1, -40, 0, 40)
-    hacksTitle.Position = UDim2.new(0, 20, 0, 10)
-    hacksTitle.BackgroundTransparency = 1
-    hacksTitle.Font = Enum.Font.GothamBold
-    hacksTitle.TextSize = 26
-    hacksTitle.TextColor3 = COLORS.white
-    hacksTitle.Text = "الهاكات - Hacks"
+do
+    local title = Instance.new("TextLabel", hacksPage)
+    title.Size = UDim2.new(1, -40, 0, 40)
+    title.Position = UDim2.new(0, 20, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 26
+    title.TextColor3 = COLORS.white
+    title.Text = "الهاكات - Hacks"
 
     local startY = 60
     local paddingY = 45
 
-    -- Noclip toggle
+    -- Noclip toggle button
     local noclipBtn = Instance.new("TextButton", hacksPage)
     noclipBtn.Size = UDim2.new(0.4, 0, 0, 40)
     noclipBtn.Position = UDim2.new(0, 20, 0, startY)
@@ -282,46 +401,7 @@ do
     noclipBtn.Text = "تفعيل Noclip"
     addUICorner(noclipBtn, 10)
 
-    local noclipEnabled = false
-    local noclipConnection
-
-    local function setNoclip(enabled)
-        if enabled then
-            noclipConnection = RS.Stepped:Connect(function()
-                local character = LocalPlayer.Character
-                if character then
-                    for _, part in pairs(character:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
-        else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
-            local character = LocalPlayer.Character
-            if character then
-                for _, part in pairs(character:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
-                end
-            end
-        end
-    end
-
-    noclipBtn.MouseButton1Click:Connect(function()
-        noclipEnabled = not noclipEnabled
-        hackSettings.noclip.enabled = noclipEnabled
-        setNoclip(noclipEnabled)
-        noclipBtn.Text = noclipEnabled and "إيقاف Noclip" or "تفعيل Noclip"
-        notify(noclipEnabled and "تم تفعيل Noclip" or "تم إيقاف Noclip")
-    end)
-
-    -- Fly toggle
+    -- Fly toggle button
     local flyBtn = Instance.new("TextButton", hacksPage)
     flyBtn.Size = UDim2.new(0.4, 0, 0, 40)
     flyBtn.Position = UDim2.new(0.5, 10, 0, startY)
@@ -332,82 +412,10 @@ do
     flyBtn.Text = "تفعيل Fly"
     addUICorner(flyBtn, 10)
 
-    local flyEnabled = false
-    local flyBodyVelocity
-    local flying = false
-    local flySpeed = 50
-
-    local function getFlyMoveDirection()
-        local moveDir = Vector3.new()
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            moveDir = moveDir + Workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            moveDir = moveDir - Workspace.CurrentCamera.CFrame.LookVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            moveDir = moveDir - Workspace.CurrentCamera.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            moveDir = moveDir + Workspace.CurrentCamera.CFrame.RightVector
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then
-            moveDir = moveDir + Vector3.new(0,1,0)
-        end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
-            moveDir = moveDir - Vector3.new(0,1,0)
-        end
-        if moveDir.Magnitude > 0 then
-            moveDir = moveDir.Unit
-        end
-        return moveDir
-    end
-
-    flyBtn.MouseButton1Click:Connect(function()
-        flyEnabled = not flyEnabled
-        hackSettings.fly.enabled = flyEnabled
-        flyBtn.Text = flyEnabled and "إيقاف Fly" or "تفعيل Fly"
-        notify(flyEnabled and "تم تفعيل Fly" or "تم إيقاف Fly")
-
-        local character = LocalPlayer.Character
-        if flyEnabled then
-            if character then
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if hrp and humanoid then
-                    humanoid.PlatformStand = true
-                    flyBodyVelocity = Instance.new("BodyVelocity")
-                    flyBodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
-                    flyBodyVelocity.Velocity = Vector3.new(0,0,0)
-                    flyBodyVelocity.Parent = hrp
-                    flying = true
-                end
-            end
-        else
-            if flying and flyBodyVelocity then
-                flyBodyVelocity:Destroy()
-                flyBodyVelocity = nil
-                flying = false
-            end
-            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.PlatformStand = false
-            end
-        end
-    end)
-
-    -- Run fly velocity update on render step
-    RS:BindToRenderStep("FlyMovement", Enum.RenderPriority.Character.Value + 3, function(dt)
-        if hackSettings.fly.enabled and flying and flyBodyVelocity then
-            local moveDirection = getFlyMoveDirection()
-            flyBodyVelocity.Velocity = moveDirection * flySpeed
-        end
-    end)
-
-    -- Speed toggle
+    -- Speed toggle button
     local speedBtn = Instance.new("TextButton", hacksPage)
     speedBtn.Size = UDim2.new(0.4, 0, 0, 40)
-    speedBtn.Position = UDim2.new(0, 20, 0, startY + 45)
+    speedBtn.Position = UDim2.new(0, 20, 0, startY + paddingY)
     speedBtn.BackgroundColor3 = COLORS.purple
     speedBtn.TextColor3 = COLORS.white
     speedBtn.Font = Enum.Font.GothamBold
@@ -415,29 +423,10 @@ do
     speedBtn.Text = "تفعيل Speed"
     addUICorner(speedBtn, 10)
 
-    local speedEnabled = false
-    local speedMult = 3 -- speed multiplier
-
-    speedBtn.MouseButton1Click:Connect(function()
-        speedEnabled = not speedEnabled
-        hackSettings.speed.enabled = speedEnabled
-        speedBtn.Text = speedEnabled and "إيقاف Speed" or "تفعيل Speed"
-        notify(speedEnabled and "تم تفعيل Speed" or "تم إيقاف Speed")
-
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            if speedEnabled then
-                humanoid.WalkSpeed = 16 * speedMult
-            else
-                humanoid.WalkSpeed = 16
-            end
-        end
-    end)
-
-    -- Jump toggle
+    -- Jump toggle button
     local jumpBtn = Instance.new("TextButton", hacksPage)
     jumpBtn.Size = UDim2.new(0.4, 0, 0, 40)
-    jumpBtn.Position = UDim2.new(0.5, 10, 0, startY + 45)
+    jumpBtn.Position = UDim2.new(0.5, 10, 0, startY + paddingY)
     jumpBtn.BackgroundColor3 = COLORS.purple
     jumpBtn.TextColor3 = COLORS.white
     jumpBtn.Font = Enum.Font.GothamBold
@@ -445,8 +434,104 @@ do
     jumpBtn.Text = "تفعيل Jump"
     addUICorner(jumpBtn, 10)
 
-    local jumpEnabled = false
-    local jumpPower = 100
+    -- LOCAL helper to enable/disable noclip by setting collisions off
+    local function setNoclip(enabled)
+        local character = LocalPlayer.Character
+        if not character then return end
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not enabled
+            end
+        end
+        hackSettings.noclip.enabled = enabled
+    end
+
+    -- Fly implementation using BodyVelocity
+    local flyBodyVelocity = nil
+    local flying = false
+
+    local function startFly()
+        local character = LocalPlayer.Character
+        if not character then return end
+        local hrp = getHumanoidRootPart(character)
+        local humanoid = getHumanoid(character)
+        if hrp and humanoid then
+            humanoid.PlatformStand = true
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = hrp
+            flying = true
+
+            RS:BindToRenderStep("FlyMovement", Enum.RenderPriority.Character.Value + 1, function()
+                if not flying or not flyBodyVelocity then
+                    RS:UnbindFromRenderStep("FlyMovement")
+                    return
+                end
+
+                local moveDirection = Vector3.new(0, 0, 0)
+                if UIS:IsKeyDown(Enum.KeyCode.W) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDirection = moveDirection + Vector3.new(0, 1, 0) end
+                if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection = moveDirection - Vector3.new(0, 1, 0) end
+
+                if moveDirection.Magnitude > 0 then
+                    moveDirection = moveDirection.Unit
+                end
+
+                flyBodyVelocity.Velocity = moveDirection * hackSettings.fly.speed
+            end)
+        end
+    end
+
+    local function stopFly()
+        flying = false
+        if flyBodyVelocity then
+            flyBodyVelocity:Destroy()
+            flyBodyVelocity = nil
+        end
+        local humanoid = getHumanoid(LocalPlayer.Character)
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+
+    noclipBtn.MouseButton1Click:Connect(function()
+        noclipEnabled = not noclipEnabled
+        setNoclip(noclipEnabled)
+        noclipBtn.Text = noclipEnabled and "إيقاف Noclip" or "تفعيل Noclip"
+        notify(noclipEnabled and "تم تفعيل Noclip" or "تم إيقاف Noclip")
+    end)
+
+    flyBtn.MouseButton1Click:Connect(function()
+        flyEnabled = not flyEnabled
+        hackSettings.fly.enabled = flyEnabled
+        flyBtn.Text = flyEnabled and "إيقاف Fly" or "تفعيل Fly"
+        notify(flyEnabled and "تم تفعيل Fly" or "تم إيقاف Fly")
+        if flyEnabled then
+            startFly()
+        else
+            stopFly()
+        end
+    end)
+
+    speedBtn.MouseButton1Click:Connect(function()
+        speedEnabled = not speedEnabled
+        hackSettings.speed.enabled = speedEnabled
+        speedBtn.Text = speedEnabled and "إيقاف Speed" or "تفعيل Speed"
+        notify(speedEnabled and "تم تفعيل Speed" or "تم إيقاف Speed")
+
+        local humanoid = getHumanoid(LocalPlayer.Character)
+        if humanoid then
+            if speedEnabled then
+                humanoid.WalkSpeed = WALK_SPEED_BASE * hackSettings.speed.multiplier
+            else
+                humanoid.WalkSpeed = WALK_SPEED_BASE
+            end
+        end
+    end)
 
     jumpBtn.MouseButton1Click:Connect(function()
         jumpEnabled = not jumpEnabled
@@ -454,255 +539,291 @@ do
         jumpBtn.Text = jumpEnabled and "إيقاف Jump" or "تفعيل Jump"
         notify(jumpEnabled and "تم تفعيل Jump" or "تم إيقاف Jump")
 
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = getHumanoid(LocalPlayer.Character)
         if humanoid then
             if jumpEnabled then
-                humanoid.JumpPower = jumpPower
+                humanoid.JumpPower = hackSettings.jump.power
             else
-                humanoid.JumpPower = 50
+                humanoid.JumpPower = JUMP_POWER_BASE
             end
         end
     end)
 end
 
--- ===================== Bang Follow System =====================
-do
-    local bangPage = Instance.new("Frame", pagesContainer)
-    bangPage.Size = UDim2.new(1, 0, 1, 0)
-    bangPage.BackgroundTransparency = 1
-    bangPage.Visible = false
-    pages["Bang"] = bangPage
+-- 4. Bang Page
+local bangBtn, bangPage = createTab("نظام Bang", 4)
 
-    local titleLabel = Instance.new("TextLabel", bangPage)
-    titleLabel.Size = UDim2.new(1, -40, 0, 35)
-    titleLabel.Position = UDim2.new(0, 20, 0, 10)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 26
-    titleLabel.TextColor3 = COLORS.white
-    titleLabel.Text = "Bang Follow System"
+do
+    local title = Instance.new("TextLabel", bangPage)
+    title.Size = UDim2.new(1, -40, 0, 40)
+    title.Position = UDim2.new(0, 20, 0, 10)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 26
+    title.TextColor3 = COLORS.white
+    title.Text = "نظام Bang"
+
+    local targetLabel = Instance.new("TextLabel", bangPage)
+    targetLabel.Size = UDim2.new(0, 120, 0, 25)
+    targetLabel.Position = UDim2.new(0, 20, 0, 60)
+    targetLabel.BackgroundTransparency = 1
+    targetLabel.Font = Enum.Font.GothamBold
+    targetLabel.TextSize = 18
+    targetLabel.TextColor3 = COLORS.white
+    targetLabel.Text = "اسم الهدف:"
 
     local targetBox = Instance.new("TextBox", bangPage)
-    targetBox.Size = UDim2.new(0.5, 0, 0, 30)
-    targetBox.Position = UDim2.new(0, 20, 0, 60)
-    targetBox.PlaceholderText = "ادخل اسم اللاعب الهدف"
+    targetBox.Size = UDim2.new(0, 180, 0, 25)
+    targetBox.Position = UDim2.new(0, 150, 0, 60)
+    targetBox.PlaceholderText = "اكتب اسم لاعب"
     targetBox.Font = Enum.Font.GothamBold
     targetBox.TextSize = 18
     targetBox.TextColor3 = COLORS.white
-    targetBox.BackgroundColor3 = COLORS.darkBackground
-    addUICorner(targetBox, 8)
+    targetBox.BackgroundColor3 = COLORS.darkBG
+    addUICorner(targetBox, 6)
+
+    local freqLabel = Instance.new("TextLabel", bangPage)
+    freqLabel.Size = UDim2.new(0, 120, 0, 25)
+    freqLabel.Position = UDim2.new(0, 20, 0, 95)
+    freqLabel.BackgroundTransparency = 1
+    freqLabel.Font = Enum.Font.GothamBold
+    freqLabel.TextSize = 18
+    freqLabel.TextColor3 = COLORS.white
+    freqLabel.Text = "تردد الاهتزاز (Hz):"
+
+    local speedBox = Instance.new("TextBox", bangPage)
+    speedBox.Size = UDim2.new(0, 180, 0, 25)
+    speedBox.Position = UDim2.new(0, 150, 0, 95)
+    speedBox.PlaceholderText = tostring(hackSettings.bang.oscillationFrequency)
+    speedBox.Font = Enum.Font.GothamBold
+    speedBox.TextSize = 18
+    speedBox.TextColor3 = COLORS.white
+    speedBox.BackgroundColor3 = COLORS.darkBG
+    addUICorner(speedBox, 6)
+
+    local ampLabel = Instance.new("TextLabel", bangPage)
+    ampLabel.Size = UDim2.new(0, 120, 0, 25)
+    ampLabel.Position = UDim2.new(0, 20, 0, 130)
+    ampLabel.BackgroundTransparency = 1
+    ampLabel.Font = Enum.Font.GothamBold
+    ampLabel.TextSize = 18
+    ampLabel.TextColor3 = COLORS.white
+    ampLabel.Text = "شدة الاهتزاز:"
+
+    local amplitudeBox = Instance.new("TextBox", bangPage)
+    amplitudeBox.Size = UDim2.new(0, 180, 0, 25)
+    amplitudeBox.Position = UDim2.new(0, 150, 0, 130)
+    amplitudeBox.PlaceholderText = tostring(hackSettings.bang.oscillationAmplitude)
+    amplitudeBox.Font = Enum.Font.GothamBold
+    amplitudeBox.TextSize = 18
+    amplitudeBox.TextColor3 = COLORS.white
+    amplitudeBox.BackgroundColor3 = COLORS.darkBG
+    addUICorner(amplitudeBox, 6)
+
+    local baseDistLabel = Instance.new("TextLabel", bangPage)
+    baseDistLabel.Size = UDim2.new(0, 120, 0, 25)
+    baseDistLabel.Position = UDim2.new(0, 20, 0, 165)
+    baseDistLabel.BackgroundTransparency = 1
+    baseDistLabel.Font = Enum.Font.GothamBold
+    baseDistLabel.TextSize = 18
+    baseDistLabel.TextColor3 = COLORS.white
+    baseDistLabel.Text = "مسافة المتابعة:"
+
+    local baseDistBox = Instance.new("TextBox", bangPage)
+    baseDistBox.Size = UDim2.new(0, 180, 0, 25)
+    baseDistBox.Position = UDim2.new(0, 150, 0, 165)
+    baseDistBox.PlaceholderText = tostring(hackSettings.bang.baseFollowDistance)
+    baseDistBox.Font = Enum.Font.GothamBold
+    baseDistBox.TextSize = 18
+    baseDistBox.TextColor3 = COLORS.white
+    baseDistBox.BackgroundColor3 = COLORS.darkBG
+    addUICorner(baseDistBox, 6)
 
     local bangStartBtn = Instance.new("TextButton", bangPage)
-    bangStartBtn.Size = UDim2.new(0.2, 0, 0, 35)
-    bangStartBtn.Position = UDim2.new(0.52, 10, 0, 60)
-    bangStartBtn.BackgroundColor3 = COLORS.green
+    bangStartBtn.Size = UDim2.new(0.4, 0, 0, 40)
+    bangStartBtn.Position = UDim2.new(0, 20, 0, 210)
+    bangStartBtn.BackgroundColor3 = COLORS.purple
     bangStartBtn.TextColor3 = COLORS.white
     bangStartBtn.Font = Enum.Font.GothamBold
-    bangStartBtn.TextSize = 18
-    bangStartBtn.Text = "ابدأ"
-    addUICorner(bangStartBtn, 8)
+    bangStartBtn.TextSize = 20
+    bangStartBtn.Text = "تشغيل Bang"
+    addUICorner(bangStartBtn, 10)
 
     local bangStopBtn = Instance.new("TextButton", bangPage)
-    bangStopBtn.Size = UDim2.new(0.2, 0, 0, 35)
-    bangStopBtn.Position = UDim2.new(0.75, 10, 0, 60)
+    bangStopBtn.Size = UDim2.new(0.4, 0, 0, 40)
+    bangStopBtn.Position = UDim2.new(0.5, 10, 0, 210)
     bangStopBtn.BackgroundColor3 = COLORS.red
     bangStopBtn.TextColor3 = COLORS.white
     bangStopBtn.Font = Enum.Font.GothamBold
-    bangStopBtn.TextSize = 18
-    bangStopBtn.Text = "إيقاف"
-    addUICorner(bangStopBtn, 8)
+    bangStopBtn.TextSize = 20
+    bangStopBtn.Text = "إيقاف Bang"
+    addUICorner(bangStopBtn, 10)
 
-    local speedBox = Instance.new("TextBox", bangPage)
-    speedBox.Size = UDim2.new(0.3, 0, 0, 30)
-    speedBox.Position = UDim2.new(0, 20, 0, 110)
-    speedBox.PlaceholderText = "تردد التذبذب (Frequency)"
-    speedBox.Font = Enum.Font.GothamBold
-    speedBox.TextSize = 16
-    speedBox.TextColor3 = COLORS.white
-    speedBox.BackgroundColor3 = COLORS.darkBackground
-    speedBox.Text = tostring(hackSettings.bang.oscillationFrequency)
-    addUICorner(speedBox, 8)
+    local bangActive = false
 
-    local amplitudeBox = Instance.new("TextBox", bangPage)
-    amplitudeBox.Size = UDim2.new(0.3, 0, 0, 30)
-    amplitudeBox.Position = UDim2.new(0.35, 10, 0, 110)
-    amplitudeBox.PlaceholderText = "سعة التذبذب (Amplitude)"
-    amplitudeBox.Font = Enum.Font.GothamBold
-    amplitudeBox.TextSize = 16
-    amplitudeBox.TextColor3 = COLORS.white
-    amplitudeBox.BackgroundColor3 = COLORS.darkBackground
-    amplitudeBox.Text = tostring(hackSettings.bang.oscillationAmplitude)
-    addUICorner(amplitudeBox, 8)
-
-    local baseDistBox = Instance.new("TextBox", bangPage)
-    baseDistBox.Size = UDim2.new(0.3, 0, 0, 30)
-    baseDistBox.Position = UDim2.new(0.7, 10, 0, 110)
-    baseDistBox.PlaceholderText = "المسافة الأساسية (Base Distance)"
-    baseDistBox.Font = Enum.Font.GothamBold
-    baseDistBox.TextSize = 16
-    baseDistBox.TextColor3 = COLORS.white
-    baseDistBox.BackgroundColor3 = COLORS.darkBackground
-    baseDistBox.Text = tostring(hackSettings.bang.baseFollowDistance)
-    addUICorner(baseDistBox, 8)
-
-    -- Find player by name helper
-    local function getPlayerByName(name)
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Name:lower() == name:lower() then
-                return p
-            end
+    local function bangLoop(targetPlayer)
+        local char = LocalPlayer.Character
+        local hrp = getHumanoidRootPart(char)
+        if not hrp then
+            notify("شخصيتك غير موجودة، الرجاء إعادة الظهور.")
+            return
         end
-        return nil
-    end
-
-    local function setNoclip(enabled)
-        if hackSettings.noclip.enabled ~= enabled then
-            hackSettings.noclip.enabled = enabled
-            -- We reuse noclip function above
-            -- But no direct connection to RS here, so just set noclipEnabled var and rely on that
+        if not targetPlayer or not targetPlayer.Character then
+            notify("الهدف غير صالح أو غير متصل.")
+            return
         end
-    end
+        local targetHRP = getHumanoidRootPart(targetPlayer.Character)
+        if not targetHRP then
+            notify("الهدف لا يحتوي على HumanoidRootPart.")
+            return
+        end
 
-    local lastTime = 0
-
-    local function bangFollow(dt)
-        if not hackSettings.bang.active or not hackSettings.bang.target then return end
-        local targetChar = hackSettings.bang.target.Character
-        local localChar = LocalPlayer.Character
-        if not targetChar or not localChar then return end
-        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-        local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-        if not targetHRP or not localHRP then return end
-
-        local oscFreq = hackSettings.bang.oscillationFrequency
-        local oscAmp = hackSettings.bang.oscillationAmplitude
+        local oscillationFreq = hackSettings.bang.oscillationFrequency
+        local oscillationAmp = hackSettings.bang.oscillationAmplitude
         local baseDist = hackSettings.bang.baseFollowDistance
 
-        local time = tick()
-        local oscillation = math.sin(time * oscFreq) * oscAmp
+        local startTime = tick()
+        bangActive = true
 
-        local targetCF = targetHRP.CFrame
-        -- Calculate offset oscillating on X axis relative to target facing direction
-        local offsetVec = targetCF.RightVector * oscillation + targetCF.LookVector * baseDist
-
-        local desiredPos = targetCF.Position + offsetVec
-        local bodyVelocity = localHRP:FindFirstChild("BodyVelocity")
-        if not bodyVelocity then
-            bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bodyVelocity.Parent = localHRP
+        while bangActive do
+            RS.RenderStepped:Wait()
+            if not targetPlayer.Character or not getHumanoidRootPart(targetPlayer.Character) then
+                notify("الهدف فقد شخصيته أو خرج.")
+                bangActive = false
+                break
+            end
+            local timePassed = tick() - startTime
+            local oscillate = math.sin(timePassed * oscillationFreq * math.pi * 2) * oscillationAmp
+            local targetPos = targetHRP.Position + (targetHRP.CFrame.LookVector * baseDist)
+            local offsetPos = targetPos + Vector3.new(0, oscillate, 0)
+            hrp.CFrame = CFrame.new(offsetPos, targetPos)
         end
-        bodyVelocity.Velocity = (desiredPos - localHRP.Position) * 10 -- smooth follow velocity
-
-        -- Set camera to target
-        Workspace.CurrentCamera.CameraSubject = targetHRP
-    end
-
-    -- Bang follow bind to RenderStep
-    RS:BindToRenderStep("BangFollow", Enum.RenderPriority.Character.Value + 4, function(dt)
-        if hackSettings.bang.active then
-            bangFollow(dt)
-        end
-    end)
-
-    -- Notification function for Bang
-    local function notifyBang(status, targetName)
-        local msg = status and ("Bang مفعل على: " .. targetName) or "تم إيقاف Bang"
-        notify(msg)
-    end
-
-    -- Start Bang function with notification
-    local function startBangWithNotif(targetName)
-        local target = getPlayerByName(targetName)
-        if not target then
-            notify("اللاعب غير موجود: " .. targetName)
-            return false
-        end
-        hackSettings.bang.target = target
-        hackSettings.bang.active = true
-        setNoclip(true)
-        -- Optional: modify camera for Bang, done inside bangFollow
-        notifyBang(true, target.Name)
-        return true
     end
 
     bangStartBtn.MouseButton1Click:Connect(function()
         local targetName = targetBox.Text
-        if targetName == "" then
-            notify("يرجى إدخال اسم اللاعب الهدف")
+        local freq = safeNumberParse(speedBox.Text, hackSettings.bang.oscillationFrequency)
+        local amp = safeNumberParse(amplitudeBox.Text, hackSettings.bang.oscillationAmplitude)
+        local dist = safeNumberParse(baseDistBox.Text, hackSettings.bang.baseFollowDistance)
+
+        hackSettings.bang.oscillationFrequency = freq
+        hackSettings.bang.oscillationAmplitude = amp
+        hackSettings.bang.baseFollowDistance = dist
+
+        local targetPlayer = getPlayerByName(targetName)
+        if not targetPlayer then
+            notify("لم يتم العثور على اللاعب الهدف.")
             return
         end
-        -- Update bang settings from UI
-        local freq = tonumber(speedBox.Text)
-        local amp = tonumber(amplitudeBox.Text)
-        local baseDist = tonumber(baseDistBox.Text)
-        if freq and freq > 0 then
-            hackSettings.bang.oscillationFrequency = freq
-        else
-            speedBox.Text = tostring(hackSettings.bang.oscillationFrequency)
+
+        if bangActive then
+            notify("Bang يعمل بالفعل.")
+            return
         end
-        if amp and amp >= 0 then
-            hackSettings.bang.oscillationAmplitude = amp
-        else
-            amplitudeBox.Text = tostring(hackSettings.bang.oscillationAmplitude)
-        end
-        if baseDist and baseDist >= 0 then
-            hackSettings.bang.baseFollowDistance = baseDist
-        else
-            baseDistBox.Text = tostring(hackSettings.bang.baseFollowDistance)
-        end
-        startBangWithNotif(targetName)
+
+        notify("تم تشغيل Bang على: " .. targetPlayer.Name)
+        spawn(function()
+            bangLoop(targetPlayer)
+        end)
     end)
 
     bangStopBtn.MouseButton1Click:Connect(function()
-        hackSettings.bang.active = false
-        hackSettings.bang.target = nil
-        setNoclip(false)
-        Workspace.CurrentCamera.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or Workspace.CurrentCamera.CameraSubject
-        notifyBang(false)
-        -- Remove BodyVelocity on local humanoid root part if exists
-        local localHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if localHRP then
-            local bodyVelocity = localHRP:FindFirstChild("BodyVelocity")
-            if bodyVelocity then
-                bodyVelocity:Destroy()
-            end
+        if bangActive then
+            bangActive = false
+            notify("تم إيقاف Bang")
+        else
+            notify("Bang غير مفعل.")
         end
     end)
 end
 
--- ===================== Page Switching =====================
-do
-    -- Simple tab buttons to switch pages
-    local tabs = {"PlayerInfo", "ESP", "Hacks", "Bang"}
-    local tabButtons = {}
+-- ==================== TAB SWITCHING LOGIC =====================
+local currentTab = nil
 
-    local tabBar = Instance.new("Frame", mainFrame)
-    tabBar.Size = UDim2.new(1, 0, 0, 40)
-    tabBar.Position = UDim2.new(0, 0, 0, 0)
-    tabBar.BackgroundColor3 = Color3.fromRGB(30,30,40)
-    addUICorner(tabBar, 12)
-
-    for i, tabName in ipairs(tabs) do
-        local btn = Instance.new("TextButton", tabBar)
-        btn.Size = UDim2.new(1/#tabs, -5, 1, -10)
-        btn.Position = UDim2.new((i-1)/#tabs, 5, 0, 5)
-        btn.BackgroundColor3 = COLORS.purple
-        btn.TextColor3 = COLORS.white
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 18
-        btn.Text = tabName
-        addUICorner(btn, 8)
-
-        btn.MouseButton1Click:Connect(function()
-            for _, page in pairs(pages) do
-                page.Visible = false
-            end
-            if pages[tabName] then
-                pages[tabName].Visible = true
-            end
-        end)
-
-        tabButtons[tabName] = btn
+local function switchTab(name)
+    if currentTab and pages[currentTab] then
+        pages[currentTab].Visible = false
+    end
+    if pages[name] then
+        pages[name].Visible = true
+        currentTab = name
     end
 end
+
+-- Initialize first tab
+switchTab("معلومات اللاعب")
+
+-- Connect tab buttons
+infoBtn.MouseButton1Click:Connect(function() switchTab("معلومات اللاعب") end)
+espBtn.MouseButton1Click:Connect(function() switchTab("نظام ESP") end)
+hacksBtn.MouseButton1Click:Connect(function() switchTab("الهاكات") end)
+bangBtn.MouseButton1Click:Connect(function() switchTab("نظام Bang") end)
+
+-- ==================== CLEANUP HANDLER ON CHARACTER RESET =====================
+LocalPlayer.CharacterAdded:Connect(function(char)
+    wait(1) -- Wait character to fully load
+
+    -- Reset speeds and jump power
+    local humanoid = getHumanoid(char)
+    if humanoid then
+        humanoid.WalkSpeed = WALK_SPEED_BASE
+        humanoid.JumpPower = JUMP_POWER_BASE
+    end
+
+    -- Remove noclip collision off (restore)
+    setNoclip(false)
+    noclipEnabled = false
+    hacksPage:FindFirstChildWhichIsA("TextButton", true).Text = "تفعيل Noclip" -- Reset button text (safe assumption)
+
+    -- Stop fly if active
+    if flyEnabled then
+        stopFly()
+        flyEnabled = false
+    end
+
+    -- Clear ESP and recreate if enabled
+    if hackSettings.esp.enabled then
+        -- Clean old ESP
+        for _, box in pairs(hackSettings.esp.boxes) do
+            if box then box:Destroy() end
+        end
+        hackSettings.esp.boxes = {}
+        -- Recreate ESP
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local box = espPage:FindFirstChild("ESPBox_" .. plr.Name)
+                if not box then
+                    box = Instance.new("BillboardGui")
+                    box.Adornee = plr.Character.HumanoidRootPart
+                    box.Size = UDim2.new(0, 100, 0, 40)
+                    box.AlwaysOnTop = true
+                    box.Name = "ESPBox_" .. plr.Name
+                    box.Parent = Workspace.CurrentCamera
+
+                    local frame = Instance.new("Frame", box)
+                    frame.Size = UDim2.new(1, 0, 1, 0)
+                    frame.BackgroundTransparency = 0.5
+                    frame.BackgroundColor3 = hackSettings.esp.color
+                    frame.BorderSizePixel = 1
+                    frame.BorderColor3 = COLORS.white
+                    addUICorner(frame, 8)
+
+                    local label = Instance.new("TextLabel", frame)
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.BackgroundTransparency = 1
+                    label.TextColor3 = COLORS.white
+                    label.Font = Enum.Font.GothamBold
+                    label.TextSize = 14
+                    label.Text = plr.Name
+
+                    table.insert(hackSettings.esp.boxes, box)
+                end
+            end
+        end
+    end
+end)
+
+-- ==================== END OF SCRIPT =====================
+
+notify("Elite Hack System 2025 loaded successfully.")
+
