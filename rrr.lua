@@ -1,597 +1,697 @@
-
--- Elite Hack UI System 2025 - Full Script with Flight, Noclip, ESP, Profile, and Settings
--- Authored and optimized for robustness and clean execution
+-- Full Elite Hack System with Multiple Pages (Bang, Movement, Flight)
+-- Author: ChatGPT v2 for FNLOXER (upgraded)
+-- DIDDY & FNLOXER Style
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local UserGui = LocalPlayer:WaitForChild("PlayerGui")
+local TweenService = game:GetService("TweenService")
 
--- Colors scheme
+-- إعداد الألوان للواجهة (نفس ألوانك مع تحسين بسيط)
 local COLORS = {
-    darkBackground = Color3.fromRGB(30, 30, 30),
-    background = Color3.fromRGB(20, 20, 20),
-    green = Color3.fromRGB(0, 200, 0),
-    red = Color3.fromRGB(200, 0, 0),
-    white = Color3.fromRGB(255, 255, 255),
-    orange = Color3.fromRGB(255, 140, 0)
+    background = Color3.fromRGB(25, 25, 30),
+    darkBackground = Color3.fromRGB(15, 15, 20),
+    purple = Color3.fromRGB(130, 90, 220),
+    green = Color3.fromRGB(80, 200, 120),
+    red = Color3.fromRGB(220, 50, 50),
+    white = Color3.new(1,1,1),
+    orange = Color3.fromRGB(255,140,0)
 }
 
--- Utility to add rounded corners
-local function addUICorner(instance, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = instance
+-- إنشاء ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "EliteHackMenu"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local function addUICorner(inst, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 10)
+    c.Parent = inst
 end
 
--- Notification function
-local function createNotification(text, duration)
-    local notif = Instance.new("TextLabel")
-    notif.BackgroundColor3 = COLORS.orange
-    notif.TextColor3 = COLORS.white
-    notif.Size = UDim2.new(0, 300, 0, 40)
-    notif.Position = UDim2.new(0.5, -150, 0, 50)
-    notif.Text = text
-    notif.Font = Enum.Font.GothamBold
-    notif.TextSize = 20
-    notif.BackgroundTransparency = 0.85
-    notif.Parent = UserGui
-    notif.ZIndex = 1000
-    addUICorner(notif, 12)
-    coroutine.wrap(function()
-        wait(duration or 3)
-        notif:Destroy()
-    end)()
-end
-
--- Sound feedback
-local function playToggleSound()
-    -- Optional: implement your toggle sound here using Sound instances
-end
-
--- Main container UI
+-- النافذة الرئيسية
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 620, 0, 460)
-mainFrame.Position = UDim2.new(0.5, -310, 0.5, -230)
+mainFrame.Size = UDim2.new(0, 460, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -230, 0.5, -200)
 mainFrame.BackgroundColor3 = COLORS.background
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = UserGui
-addUICorner(mainFrame, 20)
+addUICorner(mainFrame, 15)
+mainFrame.Parent = ScreenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
 
--- Title bar
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 50)
-titleBar.BackgroundColor3 = COLORS.darkBackground
-titleBar.Parent = mainFrame
-addUICorner(titleBar, 20)
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Text = "Elite Hack System - ALm6eri"
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextSize = 26
-titleLabel.TextColor3 = COLORS.orange
-titleLabel.BackgroundTransparency = 1
-titleLabel.Size = UDim2.new(1, 0, 1, 0)
-titleLabel.Parent = titleBar
-
--- Tabs container
-local tabButtons = {}
+-- شريط التبويبات (Tabs)
+local tabs = {"Bang System", "Movement", "Flight"}
 local pages = {}
+local tabButtons = {}
+local currentPage = 1
 
-local function setActivePage(index)
-    for i, page in pairs(pages) do
-        page.Visible = (i == index)
-    end
-    for i, btn in pairs(tabButtons) do
-        btn.BackgroundColor3 = (i == index) and COLORS.orange or COLORS.darkBackground
-        btn.TextColor3 = (i == index) and COLORS.white or COLORS.white
-    end
-end
-
--- Create tabs
-local tabsInfo = {
-    {Name = "Flight & Noclip"},
-    {Name = "Player Info"},
-    {Name = "Settings"},
-    {Name = "ESP"}
-}
-
-for i, info in ipairs(tabsInfo) do
+-- إنشاء أزرار التبويب
+for i, tabName in ipairs(tabs) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 140, 0, 40)
-    btn.Position = UDim2.new(0, (i - 1) * 150 + 10, 0, 55)
-    btn.BackgroundColor3 = COLORS.darkBackground
-    btn.Text = info.Name
+    btn.Position = UDim2.new(0, (i-1)*150 + 20, 0, 15)
+    btn.BackgroundColor3 = COLORS.purple
+    btn.Text = tabName
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 20
+    btn.TextSize = 18
     btn.TextColor3 = COLORS.white
-    btn.Parent = mainFrame
     addUICorner(btn, 12)
-    btn.MouseButton1Click:Connect(function()
-        setActivePage(i)
-    end)
+    btn.Parent = mainFrame
     tabButtons[i] = btn
 end
 
------------------------
--- 1) Flight & Noclip Page
+local function setActivePage(index)
+    for i, page in ipairs(pages) do
+        page.Visible = (i == index)
+        tabButtons[i].BackgroundColor3 = (i == index) and COLORS.green or COLORS.purple
+    end
+    currentPage = index
+end
+
+-- ============================
+-- 1) صفحة Bang System (مطور منك)
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -20, 1, -105)
-    page.Position = UDim2.new(0, 10, 0, 95)
+    page.Size = UDim2.new(1, -40, 1, -70)
+    page.Position = UDim2.new(0, 20, 0, 70)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
     page.Visible = false
     pages[1] = page
 
-    local flying = false
-    local noclipActive = false
-    local bodyVelocity = nil
+    -- Dropdown اختيار هدف اللاعب
+    local targetDropdown = Instance.new("TextButton")
+    targetDropdown.Size = UDim2.new(0, 180, 0, 40)
+    targetDropdown.Position = UDim2.new(0, 20, 0, 20)
+    targetDropdown.BackgroundColor3 = COLORS.purple
+    targetDropdown.Text = "اختر هدف"
+    targetDropdown.Font = Enum.Font.GothamBold
+    targetDropdown.TextSize = 18
+    targetDropdown.TextColor3 = COLORS.white
+    addUICorner(targetDropdown, 10)
+    targetDropdown.Parent = page
 
-    local flySpeed = 80
+    local dropdownList = Instance.new("ScrollingFrame")
+    dropdownList.Size = UDim2.new(0, 180, 0, 160)
+    dropdownList.Position = UDim2.new(0, 20, 0, 65)
+    dropdownList.BackgroundColor3 = COLORS.background
+    dropdownList.BorderSizePixel = 0
+    dropdownList.Visible = false
+    addUICorner(dropdownList, 10)
+    dropdownList.Parent = page
 
-    local flyBtn = Instance.new("TextButton")
-    flyBtn.Size = UDim2.new(0, 180, 0, 50)
-    flyBtn.Position = UDim2.new(0, 20, 0, 20)
-    flyBtn.BackgroundColor3 = COLORS.green
-    flyBtn.Text = "تشغيل الطيران"
-    flyBtn.Font = Enum.Font.GothamBold
-    flyBtn.TextSize = 22
-    flyBtn.TextColor3 = COLORS.white
-    addUICorner(flyBtn, 15)
-    flyBtn.Parent = page
-
-    local flyStopBtn = Instance.new("TextButton")
-    flyStopBtn.Size = UDim2.new(0, 180, 0, 50)
-    flyStopBtn.Position = UDim2.new(0, 220, 0, 20)
-    flyStopBtn.BackgroundColor3 = COLORS.red
-    flyStopBtn.Text = "إيقاف الطيران"
-    flyStopBtn.Font = Enum.Font.GothamBold
-    flyStopBtn.TextSize = 22
-    flyStopBtn.TextColor3 = COLORS.white
-    addUICorner(flyStopBtn, 15)
-    flyStopBtn.Parent = page
-
-    local noclipBtn = Instance.new("TextButton")
-    noclipBtn.Size = UDim2.new(0, 180, 0, 50)
-    noclipBtn.Position = UDim2.new(0, 20, 0, 90)
-    noclipBtn.BackgroundColor3 = COLORS.green
-    noclipBtn.Text = "تشغيل نو كليب"
-    noclipBtn.Font = Enum.Font.GothamBold
-    noclipBtn.TextSize = 22
-    noclipBtn.TextColor3 = COLORS.white
-    addUICorner(noclipBtn, 15)
-    noclipBtn.Parent = page
-
-    local noclipStopBtn = Instance.new("TextButton")
-    noclipStopBtn.Size = UDim2.new(0, 180, 0, 50)
-    noclipStopBtn.Position = UDim2.new(0, 220, 0, 90)
-    noclipStopBtn.BackgroundColor3 = COLORS.red
-    noclipStopBtn.Text = "إيقاف نو كليب"
-    noclipStopBtn.Font = Enum.Font.GothamBold
-    noclipStopBtn.TextSize = 22
-    noclipStopBtn.TextColor3 = COLORS.white
-    addUICorner(noclipStopBtn, 15)
-    noclipStopBtn.Parent = page
-
-    local humanoid = nil
-    local rootPart = nil
-
-    -- Flight control connection holder to disconnect safely
-    local flightConnection
-
-    local function enableFlight()
-        local char = LocalPlayer.Character
-        if not char then
-            createNotification("لا توجد شخصية لتفعيل الطيران!", 3)
-            return
-        end
-        humanoid = char:FindFirstChildOfClass("Humanoid")
-        rootPart = char:FindFirstChild("HumanoidRootPart")
-        if not humanoid or not rootPart then
-            createNotification("مكونات الشخصية ناقصة للطيران!", 3)
-            return
-        end
-        if flying then
-            createNotification("الطيران مفعّل بالفعل!", 3)
-            return
-        end
-        flying = true
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.Parent = rootPart
-
-        flightConnection = RS.RenderStepped:Connect(function()
-            if flying and bodyVelocity then
-                local moveDir = Vector3.new()
-                local camCF = workspace.CurrentCamera.CFrame
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir += camCF.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir -= camCF.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir -= camCF.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir += camCF.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-                if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0, 1, 0) end
-
-                if moveDir.Magnitude > 0 then
-                    bodyVelocity.Velocity = moveDir.Unit * flySpeed
-                else
-                    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                end
-            else
-                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
-        end)
-
-        createNotification("تم تفعيل الطيران!", 3)
-        playToggleSound()
-    end
-
-    local function disableFlight()
-        flying = false
-        if flightConnection then
-            flightConnection:Disconnect()
-            flightConnection = nil
-        end
-        if bodyVelocity then
-            bodyVelocity:Destroy()
-            bodyVelocity = nil
-        end
-        createNotification("تم إيقاف الطيران!", 3)
-        playToggleSound()
-    end
-
-    local function enableNoclip()
-        if noclipActive then
-            createNotification("نو كليب مفعّل بالفعل!", 3)
-            return
-        end
-        local char = LocalPlayer.Character
-        if not char then
-            createNotification("لا توجد شخصية لتفعيل نو كليب!", 3)
-            return
-        end
-        noclipActive = true
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+    local function refreshDropdown()
+        dropdownList:ClearAllChildren()
+        local y = 0
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1, 0, 0, 35)
+                btn.Position = UDim2.new(0, 0, 0, y)
+                btn.BackgroundColor3 = COLORS.purple
+                btn.Text = plr.Name
+                btn.Font = Enum.Font.GothamBold
+                btn.TextSize = 18
+                btn.TextColor3 = COLORS.white
+                addUICorner(btn, 8)
+                btn.Parent = dropdownList
+                y = y + 40
+                btn.MouseButton1Click:Connect(function()
+                    targetDropdown.Text = btn.Text
+                    dropdownList.Visible = false
+                end)
             end
         end
-        createNotification("تم تفعيل نو كليب!", 3)
-        playToggleSound()
+        dropdownList.CanvasSize = UDim2.new(0, 0, 0, y)
     end
 
-    local function disableNoclip()
-        if not noclipActive then
-            createNotification("نو كليب غير مفعل!", 3)
-            return
-        end
+    targetDropdown.MouseButton1Click:Connect(function()
+        dropdownList.Visible = not dropdownList.Visible
+        if dropdownList.Visible then refreshDropdown() end
+    end)
+
+    -- مربعات نص سرعة التذبذب والمسافة
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0, 200, 0, 25)
+    speedLabel.Position = UDim2.new(0, 20, 0, 240)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "سرعة التذبذب: 1.5"
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 20
+    speedLabel.TextColor3 = COLORS.white
+    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedLabel.Parent = page
+
+    local speedBox = Instance.new("TextBox")
+    speedBox.Size = UDim2.new(0, 80, 0, 25)
+    speedBox.Position = UDim2.new(0, 230, 0, 240)
+    speedBox.BackgroundColor3 = COLORS.background
+    speedBox.Text = "1.5"
+    speedBox.TextColor3 = COLORS.white
+    speedBox.Font = Enum.Font.GothamBold
+    speedBox.TextSize = 20
+    addUICorner(speedBox, 8)
+    speedBox.ClearTextOnFocus = false
+    speedBox.Parent = page
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(0, 200, 0, 25)
+    distLabel.Position = UDim2.new(0, 20, 0, 275)
+    distLabel.BackgroundTransparency = 1
+    distLabel.Text = "المسافة من الهدف: 3.5"
+    distLabel.Font = Enum.Font.GothamBold
+    distLabel.TextSize = 20
+    distLabel.TextColor3 = COLORS.white
+    distLabel.TextXAlignment = Enum.TextXAlignment.Left
+    distLabel.Parent = page
+
+    local distBox = Instance.new("TextBox")
+    distBox.Size = UDim2.new(0, 80, 0, 25)
+    distBox.Position = UDim2.new(0, 230, 0, 275)
+    distBox.BackgroundColor3 = COLORS.background
+    distBox.Text = "3.5"
+    distBox.TextColor3 = COLORS.white
+    distBox.Font = Enum.Font.GothamBold
+    distBox.TextSize = 20
+    addUICorner(distBox, 8)
+    distBox.ClearTextOnFocus = false
+    distBox.Parent = page
+
+    -- أزرار تشغيل وإيقاف Bang
+    local startBtn = Instance.new("TextButton")
+    startBtn.Size = UDim2.new(0, 180, 0, 45)
+    startBtn.Position = UDim2.new(0, 20, 0, 310)
+    startBtn.BackgroundColor3 = COLORS.green
+    startBtn.Text = "تشغيل Bang + Noclip"
+    startBtn.Font = Enum.Font.GothamBold
+    startBtn.TextSize = 22
+    startBtn.TextColor3 = COLORS.white
+    addUICorner(startBtn, 12)
+    startBtn.Parent = page
+
+    local stopBtn = Instance.new("TextButton")
+    stopBtn.Size = UDim2.new(0, 180, 0, 45)
+    stopBtn.Position = UDim2.new(0, 260, 0, 310)
+    stopBtn.BackgroundColor3 = COLORS.red
+    stopBtn.Text = "إيقاف Bang"
+    stopBtn.Font = Enum.Font.GothamBold
+    stopBtn.TextSize = 22
+    stopBtn.TextColor3 = COLORS.white
+    addUICorner(stopBtn, 12)
+    stopBtn.Parent = page
+
+    -- متغيرات Bang و Noclip
+    local BangActive = false
+    local TargetPlayer = nil
+    local OSCILLATION_FREQUENCY = 1.5
+    local OSCILLATION_AMPLITUDE = 1
+    local BASE_FOLLOW_DISTANCE = 3.5
+
+    local moveInput = {forward=false, backward=false}
+
+    local function SetNoclip(enabled)
         local char = LocalPlayer.Character
         if not char then return end
-        noclipActive = false
         for _, part in pairs(char:GetChildren()) do
             if part:IsA("BasePart") then
-                part.CanCollide = true
+                part.CanCollide = not enabled
             end
         end
-        createNotification("تم إيقاف نو كليب!", 3)
-        playToggleSound()
     end
 
-    flyBtn.MouseButton1Click:Connect(enableFlight)
-    flyStopBtn.MouseButton1Click:Connect(disableFlight)
-    noclipBtn.MouseButton1Click:Connect(enableNoclip)
-    noclipStopBtn.MouseButton1Click:Connect(disableNoclip)
+    local function GetPlayerByName(name)
+        name = name:lower()
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Name:lower():find(name) then
+                return plr
+            end
+        end
+        return nil
+    end
+
+    local function createNotification(text, duration)
+        local notif = Instance.new("TextLabel")
+        notif.Size = UDim2.new(0, 300, 0, 45)
+        notif.Position = UDim2.new(0.5, -150, 0, 50)
+        notif.BackgroundColor3 = COLORS.purple
+        notif.TextColor3 = COLORS.white
+        notif.Font = Enum.Font.GothamBold
+        notif.TextSize = 22
+        notif.Text = text
+        notif.BackgroundTransparency = 0.2
+        notif.Parent = ScreenGui
+
+        local tweenIn = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 100), BackgroundTransparency = 0})
+        tweenIn:Play()
+
+        delay(duration or 3, function()
+            local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3), {Position = UDim2.new(0.5, -150, 0, 50), BackgroundTransparency = 1})
+            tweenOut:Play()
+            tweenOut.Completed:Wait()
+            notif:Destroy()
+        end)
+    end
+
+    local function UpdateSpeed()
+        local val = tonumber(speedBox.Text)
+        if val and val > 0 and val <= 10 then
+            OSCILLATION_FREQUENCY = val
+            speedLabel.Text = "سرعة التذبذب: " .. tostring(val)
+        else
+            speedBox.Text = tostring(OSCILLATION_FREQUENCY)
+            createNotification("الرجاء إدخال رقم بين 0.1 و 10 للسرعة", 3)
+        end
+    end
+
+    local function UpdateDistance()
+        local val = tonumber(distBox.Text)
+        if val and val >= 1 and val <= 20 then
+            BASE_FOLLOW_DISTANCE = val
+            distLabel.Text = "المسافة من الهدف: " .. tostring(val)
+        else
+            distBox.Text = tostring(BASE_FOLLOW_DISTANCE)
+            createNotification("الرجاء إدخال رقم بين 1 و 20 للمسافة", 3)
+        end
+    end
+
+    speedBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then UpdateSpeed() end
+    end)
+    distBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then UpdateDistance() end
+    end)
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if BangActive then
+            if input.KeyCode == Enum.KeyCode.W then
+                moveInput.forward = true
+            elseif input.KeyCode == Enum.KeyCode.S then
+                moveInput.backward = true
+            end
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if BangActive then
+            if input.KeyCode == Enum.KeyCode.W then
+                moveInput.forward = false
+            elseif input.KeyCode == Enum.KeyCode.S then
+                moveInput.backward = false
+            end
+        end
+    end)
+
+    local function FollowTarget()
+        if not BangActive or not TargetPlayer then return end
+        if not TargetPlayer.Character then return end
+        if not LocalPlayer.Character then return end
+
+        local targetHRP = TargetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local localHRP = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetHRP or not localHRP then return end
+
+        local lookVector = targetHRP.CFrame.LookVector
+        local posBase = targetHRP.Position - lookVector * BASE_FOLLOW_DISTANCE
+
+        local oscillation = math.sin(tick() * OSCILLATION_FREQUENCY * math.pi * 2) * OSCILLATION_AMPLITUDE
+        local desiredPos = posBase + Vector3.new(0, oscillation, 0)
+
+        local moveDirection = Vector3.new(0, 0, 0)
+        if moveInput.forward then
+            moveDirection = moveDirection + lookVector
+        end
+        if moveInput.backward then
+            moveDirection = moveDirection - lookVector
+        end
+
+        local moveSpeed = 7
+
+        local vectorToPlayer = localHRP.Position - targetHRP.Position
+        local projectedLength = vectorToPlayer:Dot(lookVector)
+
+        local maxDistance = BASE_FOLLOW_DISTANCE + 1
+        local minDistance = BASE_FOLLOW_DISTANCE - 1
+
+        if moveInput.forward and projectedLength > maxDistance then
+            moveDirection = Vector3.new(0, 0, 0)
+        elseif moveInput.backward and projectedLength < minDistance then
+            moveDirection = Vector3.new(0, 0, 0)
+        end
+
+        desiredPos = desiredPos + moveDirection * moveSpeed * RS.RenderStepped:Wait()
+
+        local tweenInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(localHRP, tweenInfo, {CFrame = CFrame.new(desiredPos, targetHRP.Position)})
+        tween:Play()
+    end
+
+    local function StartBang(targetName)
+        if BangActive then
+            createNotification("Bang مفعل بالفعل!", 3)
+            return
+        end
+        local plr = GetPlayerByName(targetName)
+        if not plr then
+            createNotification("لم يتم العثور على اللاعب: "..targetName, 3)
+            return
+        end
+        if plr == LocalPlayer then
+            createNotification("لا يمكنك اختيار نفسك!", 3)
+            return
+        end
+        TargetPlayer = plr
+        BangActive = true
+        SetNoclip(true)
+        createNotification("تم تفعيل Bang على "..plr.Name, 3)
+    end
+
+    local function StopBang()
+        if not BangActive then
+            createNotification("Bang غير مفعل", 3)
+            return
+        end
+        BangActive = false
+        TargetPlayer = nil
+        SetNoclip(false)
+        moveInput.forward = false
+        moveInput.backward = false
+        createNotification("تم إيقاف Bang وإعادة التحكم", 3)
+    end
+
+    startBtn.MouseButton1Click:Connect(function()
+        UpdateSpeed()
+        UpdateDistance()
+        StartBang(targetDropdown.Text)
+    end)
+
+    stopBtn.MouseButton1Click:Connect(StopBang)
+
+    RS.RenderStepped:Connect(function()
+        if BangActive then
+            FollowTarget()
+        end
+    end)
 end
 
------------------------
--- 2) Player Info Page
+-- ============================
+-- 2) صفحة Movement (Speed & JumpPower)
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -20, 1, -105)
-    page.Position = UDim2.new(0, 10, 0, 95)
+    page.Size = UDim2.new(1, -40, 1, -70)
+    page.Position = UDim2.new(0, 20, 0, 70)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
     page.Visible = false
     pages[2] = page
 
-    -- Profile Image
-    local profileImage = Instance.new("ImageLabel")
-    profileImage.Size = UDim2.new(0, 140, 0, 140)
-    profileImage.Position = UDim2.new(0.5, -70, 0, 20)
-    profileImage.BackgroundColor3 = COLORS.background
-    profileImage.BorderSizePixel = 0
-    profileImage.Parent = page
-    addUICorner(profileImage, 70)
-    profileImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Size = UDim2.new(0, 200, 0, 30)
+    speedLabel.Position = UDim2.new(0, 20, 0, 20)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "Speed: 16"
+    speedLabel.Font = Enum.Font.GothamBold
+    speedLabel.TextSize = 22
+    speedLabel.TextColor3 = COLORS.white
+    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedLabel.Parent = page
 
-    -- Player Name
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 40)
-    nameLabel.Position = UDim2.new(0, 0, 0, 170)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = "الاسم: " .. LocalPlayer.Name
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 24
-    nameLabel.TextColor3 = COLORS.white
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
-    nameLabel.Parent = page
+    local speedBox = Instance.new("TextBox")
+    speedBox.Size = UDim2.new(0, 80, 0, 30)
+    speedBox.Position = UDim2.new(0, 230, 0, 20)
+    speedBox.BackgroundColor3 = COLORS.background
+    speedBox.Text = "16"
+    speedBox.TextColor3 = COLORS.white
+    speedBox.Font = Enum.Font.GothamBold
+    speedBox.TextSize = 22
+    addUICorner(speedBox, 8)
+    speedBox.ClearTextOnFocus = false
+    speedBox.Parent = page
 
-    -- UserId Label
-    local idLabel = Instance.new("TextLabel")
-    idLabel.Size = UDim2.new(1, 0, 0, 30)
-    idLabel.Position = UDim2.new(0, 0, 0, 210)
-    idLabel.BackgroundTransparency = 1
-    idLabel.Text = "معرف المستخدم: " .. LocalPlayer.UserId
-    idLabel.Font = Enum.Font.GothamBold
-    idLabel.TextSize = 18
-    idLabel.TextColor3 = COLORS.white
-    idLabel.TextXAlignment = Enum.TextXAlignment.Center
-    idLabel.Parent = page
+    local jumpLabel = Instance.new("TextLabel")
+    jumpLabel.Size = UDim2.new(0, 200, 0, 30)
+    jumpLabel.Position = UDim2.new(0, 20, 0, 70)
+    jumpLabel.BackgroundTransparency = 1
+    jumpLabel.Text = "JumpPower: 50"
+    jumpLabel.Font = Enum.Font.GothamBold
+    jumpLabel.TextSize = 22
+    jumpLabel.TextColor3 = COLORS.white
+    jumpLabel.TextXAlignment = Enum.TextXAlignment.Left
+    jumpLabel.Parent = page
 
-    -- Welcome Text
-    local welcomeLabel = Instance.new("TextLabel")
-    welcomeLabel.Size = UDim2.new(1, -40, 0, 90)
-    welcomeLabel.Position = UDim2.new(0, 20, 0, 250)
-    welcomeLabel.BackgroundTransparency = 1
-    welcomeLabel.Text = [[
-مرحباً بك في نظام Elite من تصميم ALm6eri  
-تقدر تتحكم بكل خصائص الهك بسهولة وأمان.  
-تأكد من استخدام الأدوات بعقلانية وتجنب كشف هويتك.  
-]]
-    welcomeLabel.Font = Enum.Font.GothamBold
-    welcomeLabel.TextSize = 20
-    welcomeLabel.TextColor3 = COLORS.orange
-    welcomeLabel.TextWrapped = true
-    welcomeLabel.TextXAlignment = Enum.TextXAlignment.Center
-    welcomeLabel.Parent = page
+    local jumpBox = Instance.new("TextBox")
+    jumpBox.Size = UDim2.new(0, 80, 0, 30)
+    jumpBox.Position = UDim2.new(0, 230, 0, 70)
+    jumpBox.BackgroundColor3 = COLORS.background
+    jumpBox.Text = "50"
+    jumpBox.TextColor3 = COLORS.white
+    jumpBox.Font = Enum.Font.GothamBold
+    jumpBox.TextSize = 22
+    addUICorner(jumpBox, 8)
+    jumpBox.ClearTextOnFocus = false
+    jumpBox.Parent = page
+
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0, 290, 0, 50)
+    applyBtn.Position = UDim2.new(0, 20, 0, 130)
+    applyBtn.BackgroundColor3 = COLORS.orange
+    applyBtn.Text = "تطبيق السرعة والقفز"
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextSize = 24
+    applyBtn.TextColor3 = COLORS.white
+    addUICorner(applyBtn, 12)
+    applyBtn.Parent = page
+
+    local function applyMovement()
+        local speedVal = tonumber(speedBox.Text)
+        local jumpVal = tonumber(jumpBox.Text)
+
+        if speedVal and speedVal >= 8 and speedVal <= 150 then
+            LocalPlayer.Character.Humanoid.WalkSpeed = speedVal
+            speedLabel.Text = "Speed: " .. tostring(speedVal)
+        else
+            speedBox.Text = tostring(LocalPlayer.Character.Humanoid.WalkSpeed)
+            createNotification("السرعة يجب أن تكون بين 8 و150", 3)
+        end
+
+        if jumpVal and jumpVal >= 0 and jumpVal <= 300 then
+            LocalPlayer.Character.Humanoid.JumpPower = jumpVal
+            jumpLabel.Text = "JumpPower: " .. tostring(jumpVal)
+        else
+            jumpBox.Text = tostring(LocalPlayer.Character.Humanoid.JumpPower)
+            createNotification("قوة القفز يجب أن تكون بين 0 و300", 3)
+        end
+    end
+
+    applyBtn.MouseButton1Click:Connect(applyMovement)
+
+    speedBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then applyMovement() end
+    end)
+
+    jumpBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then applyMovement() end
+    end)
 end
 
------------------------
--- 3) Settings Page
+-- ============================
+-- 3) صفحة Flight & Noclip
 do
     local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -20, 1, -105)
-    page.Position = UDim2.new(0, 10, 0, 95)
+    page.Size = UDim2.new(1, -40, 1, -70)
+    page.Position = UDim2.new(0, 20, 0, 70)
     page.BackgroundColor3 = COLORS.darkBackground
     addUICorner(page, 15)
     page.Parent = mainFrame
     page.Visible = false
     pages[3] = page
 
-    -- Title
-    local settingsLabel = Instance.new("TextLabel")
-    settingsLabel.Size = UDim2.new(1, -20, 0, 40)
-    settingsLabel.Position = UDim2.new(0, 10, 0, 10)
-    settingsLabel.BackgroundTransparency = 1
-    settingsLabel.Text = "الإعدادات العامة"
-    settingsLabel.Font = Enum.Font.GothamBold
-    settingsLabel.TextSize = 26
-    settingsLabel.TextColor3 = COLORS.orange
-    settingsLabel.TextXAlignment = Enum.TextXAlignment.Center
-    settingsLabel.Parent = page
+    local noclipLabel = Instance.new("TextLabel")
+    noclipLabel.Size = UDim2.new(0, 300, 0, 30)
+    noclipLabel.Position = UDim2.new(0, 20, 0, 20)
+    noclipLabel.BackgroundTransparency = 1
+    noclipLabel.Text = "Noclip: OFF (اضغط N للتفعيل)"
+    noclipLabel.Font = Enum.Font.GothamBold
+    noclipLabel.TextSize = 22
+    noclipLabel.TextColor3 = COLORS.white
+    noclipLabel.TextXAlignment = Enum.TextXAlignment.Left
+    noclipLabel.Parent = page
 
-    -- Sound Notification Toggle
-    local soundNotifLabel = Instance.new("TextLabel")
-    soundNotifLabel.Size = UDim2.new(0, 280, 0, 30)
-    soundNotifLabel.Position = UDim2.new(0, 20, 0, 70)
-    soundNotifLabel.BackgroundTransparency = 1
-    soundNotifLabel.Text = "تنبيهات صوتية عند تفعيل/تعطيل الخصائص"
-    soundNotifLabel.Font = Enum.Font.GothamBold
-    soundNotifLabel.TextSize = 18
-    soundNotifLabel.TextColor3 = COLORS.white
-    soundNotifLabel.TextXAlignment = Enum.TextXAlignment.Left
-    soundNotifLabel.Parent = page
+    local flyLabel = Instance.new("TextLabel")
+    flyLabel.Size = UDim2.new(0, 300, 0, 30)
+    flyLabel.Position = UDim2.new(0, 20, 0, 60)
+    flyLabel.BackgroundTransparency = 1
+    flyLabel.Text = "Fly: OFF (اضغط F للتفعيل)"
+    flyLabel.Font = Enum.Font.GothamBold
+    flyLabel.TextSize = 22
+    flyLabel.TextColor3 = COLORS.white
+    flyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    flyLabel.Parent = page
 
-    local soundToggle = Instance.new("TextButton")
-    soundToggle.Size = UDim2.new(0, 100, 0, 40)
-    soundToggle.Position = UDim2.new(0, 310, 0, 70)
-    soundToggle.BackgroundColor3 = COLORS.green
-    soundToggle.Text = "مفعّل"
-    soundToggle.Font = Enum.Font.GothamBold
-    soundToggle.TextSize = 18
-    soundToggle.TextColor3 = COLORS.white
-    addUICorner(soundToggle, 12)
-    soundToggle.Parent = page
+    local flySpeedLabel = Instance.new("TextLabel")
+    flySpeedLabel.Size = UDim2.new(0, 200, 0, 25)
+    flySpeedLabel.Position = UDim2.new(0, 20, 0, 110)
+    flySpeedLabel.BackgroundTransparency = 1
+    flySpeedLabel.Text = "سرعة الطيران: 1"
+    flySpeedLabel.Font = Enum.Font.GothamBold
+    flySpeedLabel.TextSize = 20
+    flySpeedLabel.TextColor3 = COLORS.white
+    flySpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    flySpeedLabel.Parent = page
 
-    local soundEnabled = true
+    local flySpeedBox = Instance.new("TextBox")
+    flySpeedBox.Size = UDim2.new(0, 80, 0, 25)
+    flySpeedBox.Position = UDim2.new(0, 220, 0, 110)
+    flySpeedBox.BackgroundColor3 = COLORS.background
+    flySpeedBox.Text = "1"
+    flySpeedBox.TextColor3 = COLORS.white
+    flySpeedBox.Font = Enum.Font.GothamBold
+    flySpeedBox.TextSize = 20
+    addUICorner(flySpeedBox, 8)
+    flySpeedBox.ClearTextOnFocus = false
+    flySpeedBox.Parent = page
 
-    soundToggle.MouseButton1Click:Connect(function()
-        soundEnabled = not soundEnabled
-        soundToggle.Text = soundEnabled and "مفعّل" or "معطل"
-        soundToggle.BackgroundColor3 = soundEnabled and COLORS.green or COLORS.red
-        createNotification("تم " .. (soundEnabled and "تفعيل" or "تعطيل") .. " التنبيهات الصوتية", 3)
-        if soundEnabled then
-            playToggleSound()
-        end
-    end)
+    local noclipActive = false
+    local flyActive = false
+    local flySpeed = 1
 
-    -- Theme Toggle
-    local themeLabel = Instance.new("TextLabel")
-    themeLabel.Size = UDim2.new(0, 280, 0, 30)
-    themeLabel.Position = UDim2.new(0, 20, 0, 120)
-    themeLabel.BackgroundTransparency = 1
-    themeLabel.Text = "اختيار ثيم الواجهة"
-    themeLabel.Font = Enum.Font.GothamBold
-    themeLabel.TextSize = 18
-    themeLabel.TextColor3 = COLORS.white
-    themeLabel.TextXAlignment = Enum.TextXAlignment.Left
-    themeLabel.Parent = page
-
-    local themeToggle = Instance.new("TextButton")
-    themeToggle.Size = UDim2.new(0, 100, 0, 40)
-    themeToggle.Position = UDim2.new(0, 310, 0, 120)
-    themeToggle.BackgroundColor3 = COLORS.orange
-    themeToggle.Text = "داكن"
-    themeToggle.Font = Enum.Font.GothamBold
-    themeToggle.TextSize = 18
-    themeToggle.TextColor3 = COLORS.white
-    addUICorner(themeToggle, 12)
-    themeToggle.Parent = page
-
-    local darkTheme = true
-
-    local function switchTheme()
-        if darkTheme then
-            mainFrame.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
-            titleBar.BackgroundColor3 = Color3.fromRGB(210, 210, 210)
-            for _, btn in ipairs(tabButtons) do
-                btn.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-                btn.TextColor3 = Color3.fromRGB(40, 40, 40)
+    -- تفعيل/إيقاف Noclip
+    local function toggleNoclip()
+        noclipActive = not noclipActive
+        local char = LocalPlayer.Character
+        if not char then return end
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not noclipActive
             end
-            themeToggle.Text = "فاتح"
+        end
+        noclipLabel.Text = "Noclip: " .. (noclipActive and "ON (اضغط N للتعطيل)" or "OFF (اضغط N للتفعيل)")
+        createNotification("Noclip " .. (noclipActive and "مفعل" or "معطل"), 3)
+    end
+
+    -- تحكم الطيران Fly
+    local bodyVelocity = nil
+    local bodyGyro = nil
+
+    local function startFly()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(9e4, 9e4, 9e4)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.Parent = hrp
+
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(9e5, 9e5, 9e5)
+        bodyGyro.CFrame = hrp.CFrame
+        bodyGyro.Parent = hrp
+
+        flyActive = true
+        flyLabel.Text = "Fly: ON (اضغط F للتعطيل)"
+        createNotification("Fly مفعل", 3)
+    end
+
+    local function stopFly()
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+            bodyVelocity = nil
+        end
+        if bodyGyro then
+            bodyGyro:Destroy()
+            bodyGyro = nil
+        end
+        flyActive = false
+        flyLabel.Text = "Fly: OFF (اضغط F للتفعيل)"
+        createNotification("Fly معطل", 3)
+    end
+
+    local function toggleFly()
+        if flyActive then
+            stopFly()
         else
-            mainFrame.BackgroundColor3 = COLORS.background
-            titleBar.BackgroundColor3 = COLORS.darkBackground
-            for _, btn in ipairs(tabButtons) do
-                btn.BackgroundColor3 = COLORS.darkBackground
-                btn.TextColor3 = COLORS.white
-            end
-            themeToggle.Text = "داكن"
+            startFly()
         end
-        darkTheme = not darkTheme
     end
 
-    themeToggle.MouseButton1Click:Connect(function()
-        switchTheme()
-        createNotification("تم تغيير الثيم", 2)
-        playToggleSound()
+    local function updateFlySpeed()
+        local val = tonumber(flySpeedBox.Text)
+        if val and val > 0 and val <= 50 then
+            flySpeed = val
+            flySpeedLabel.Text = "سرعة الطيران: " .. tostring(val)
+        else
+            flySpeedBox.Text = tostring(flySpeed)
+            createNotification("الرجاء إدخال رقم بين 1 و 50 للسرعة", 3)
+        end
+    end
+
+    flySpeedBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then updateFlySpeed() end
+    end)
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.KeyCode == Enum.KeyCode.N then
+            toggleNoclip()
+        elseif input.KeyCode == Enum.KeyCode.F then
+            toggleFly()
+        end
+    end)
+
+    -- تحكم حركة الطيران مع WASD + الفأرة
+    RS.RenderStepped:Connect(function(dt)
+        if flyActive and bodyVelocity and bodyGyro then
+            local char = LocalPlayer.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            local camCF = workspace.CurrentCamera.CFrame
+            local moveDir = Vector3.new(0,0,0)
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + camCF.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - camCF.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - camCF.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + camCF.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0,1,0) end
+
+            moveDir = moveDir.Unit
+            if moveDir ~= moveDir then -- NaN check
+                moveDir = Vector3.new(0,0,0)
+            end
+
+            bodyVelocity.Velocity = moveDir * flySpeed * 50
+            bodyGyro.CFrame = camCF
+        end
     end)
 end
 
------------------------
--- 4) ESP Page
-do
-    local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, -20, 1, -105)
-    page.Position = UDim2.new(0, 10, 0, 95)
-    page.BackgroundColor3 = COLORS.darkBackground
-    addUICorner(page, 15)
-    page.Parent = mainFrame
-    page.Visible = false
-    pages[4] = page
-
-    local espActive = false
-    local espBoxes = {}
-    local espConnection
-
-    local espToggleBtn = Instance.new("TextButton")
-    espToggleBtn.Size = UDim2.new(0, 150, 0, 50)
-    espToggleBtn.Position = UDim2.new(0, 20, 0, 20)
-    espToggleBtn.BackgroundColor3 = COLORS.green
-    espToggleBtn.Text = "تفعيل ESP"
-    espToggleBtn.Font = Enum.Font.GothamBold
-    espToggleBtn.TextSize = 22
-    espToggleBtn.TextColor3 = COLORS.white
-    addUICorner(espToggleBtn, 15)
-    espToggleBtn.Parent = page
-
-    local espStopBtn = Instance.new("TextButton")
-    espStopBtn.Size = UDim2.new(0, 150, 0, 50)
-    espStopBtn.Position = UDim2.new(0, 180, 0, 20)
-    espStopBtn.BackgroundColor3 = COLORS.red
-    espStopBtn.Text = "إيقاف ESP"
-    espStopBtn.Font = Enum.Font.GothamBold
-    espStopBtn.TextSize = 22
-    espStopBtn.TextColor3 = COLORS.white
-    addUICorner(espStopBtn, 15)
-    espStopBtn.Parent = page
-
-    local function createBoxForPlayer(player)
-        local box = Instance.new("Frame")
-        box.Size = UDim2.new(0, 110, 0, 40)
-        box.BackgroundTransparency = 0.7
-        box.BackgroundColor3 = COLORS.orange
-        box.BorderSizePixel = 2
-        box.BorderColor3 = COLORS.white
-        box.Visible = false
-        box.ZIndex = 10
-        box.Parent = UserGui
-        addUICorner(box, 8)
-
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = COLORS.white
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 20
-        label.Text = player.Name
-        label.Parent = box
-
-        return box
-    end
-
-    local function updateESP()
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                local box = espBoxes[player]
-                if not box then
-                    box = createBoxForPlayer(player)
-                    espBoxes[player] = box
-                end
-
-                local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
-                    if onScreen then
-                        box.Position = UDim2.new(0, screenPos.X - 55, 0, screenPos.Y - 20)
-                        box.Visible = true
-                    else
-                        box.Visible = false
-                    end
-                else
-                    box.Visible = false
-                end
-            end
-        end
-    end
-
-    espToggleBtn.MouseButton1Click:Connect(function()
-        if espActive then
-            createNotification("ESP مفعّل بالفعل", 3)
-            return
-        end
-        espActive = true
-        createNotification("تم تفعيل ESP", 3)
-        playToggleSound()
-        espConnection = RS.RenderStepped:Connect(updateESP)
-    end)
-
-    espStopBtn.MouseButton1Click:Connect(function()
-        if not espActive then
-            createNotification("ESP غير مفعّل", 3)
-            return
-        end
-        espActive = false
-        if espConnection then
-            espConnection:Disconnect()
-            espConnection = nil
-        end
-        for _, box in pairs(espBoxes) do
-            box.Visible = false
-        end
-        createNotification("تم إيقاف ESP", 3)
-        playToggleSound()
-    end)
-end
-
------------------------
--- Initialize UI
+-- تعيين الصفحة الأولى مفعلة عند التشغيل
 setActivePage(1)
 
--- The UI is now fully operational with:
--- - Flight & Noclip with smooth control
--- - Player profile info with image and user ID
--- - Settings with sound toggle and theme switching
--- - ESP boxes dynamically showing player names on screen
+-- ربط أزرار التبويب للصفحات
+for i, btn in ipairs(tabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        setActivePage(i)
+    end)
+end
 
--- Feel free to extend or modify with additional features like:
--- - Speed adjustment sliders
--- - Custom ESP styles (boxes, names, health bars)
--- - Keybind toggles for flight and noclip
--- - Sound effect implementation in playToggleSound()
+-- إظهار/إخفاء القائمة بزر F1
+local menuVisible = true
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        menuVisible = not menuVisible
+        ScreenGui.Enabled = menuVisible
+    end
+end)
 
+-- إشعار ترحيب
+print("[Elite Hack System] Loaded and Ready! اضغط F1 لفتح القائمة.")
